@@ -1,0 +1,12 @@
+pandas
+matplotlib
+seaborn
+emoji
+wordcloud
+vaderSentiment
+urlextract
+instaloader
+flask
+google-generativeai
+python-dotenv
+gunicorn

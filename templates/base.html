@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat & Social Analyser</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">📊 SocialAnalyser</a>
+    <a href="/" class="btn" style="color:#333; background:none;">Home</a>
+    <a href="/contact" class="btn" style="color:#333; background:none;">Contact</a>
+    <button id="theme-toggle" class="btn" style="background:none; font-size: 1.2rem; cursor: pointer;">🌓</button>
+    </div>
+  </nav>
+
+  <script>
+    const toggleBtn = document.getElementById('theme-toggle');
+    const body = document.body;
+
+    // Check saved preference
+    if (localStorage.getItem('theme') === 'dark') {
+      body.classList.add('dark-mode');
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      body.classList.toggle('dark-mode');
+      localStorage.setItem('theme', body.classList.contains('dark-mode') ? 'dark' : 'light');
+    });
+  </script>
+
+  <div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    {% if category == 'warning' %}
+    <!-- CUSTOM WARNING MODAL -->
+    <div class="modal-overlay" onclick="this.remove()"> <!-- Click outside to close -->
+      <div class="warning-card" onclick="event.stopPropagation()"> <!-- Prevent close when clicking card -->
+
+        <div class="modal-close-x" onclick="this.closest('.modal-overlay').remove()">
+          <i class="fas fa-times"></i>
+        </div>
+
+        <div class="warning-icon-container">
+          <div class="warning-icon-circle">!</div>
+        </div>
+
+        <div class="warning-header">
+          <h2 class="warning-title">Warning!</h2>
+        </div>
+
+        <div class="warning-body">
+          <p>{{ message | safe }}</p>
+          <button class="warning-close-btn" onclick="this.closest('.modal-overlay').remove()">OKE</button>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <!-- STANDARD ALERT CARD -->
+    <div class="card" style="border-left: 5px solid 
+        {% if category == 'error' %}#e1306c
+        {% else %}#25d366{% endif %};">
+      {{ message | safe }}
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- Chat Widget -->
+  <div id="chat-widget" class="floating-chat-icon">
+    <div id="chat-button" class="chat-btn-circle">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+    </div>
+
+    <div id="chat-window" class="chat-window" style="display: none;">
+      <div class="chat-header">
+        <span>AI Assistant</span>
+        <span id="close-chat" style="cursor: pointer;">&times;</span>
+      </div>
+      <div id="chat-messages" class="chat-body">
+        <div class="chat-message bot-message">
+          Hi! I can help analyze this profile. Ask me anything!
+        </div>
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="chat-input" placeholder="Type a message..." class="chat-input-field">
+        <button id="send-btn" class="chat-send-btn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('chat-button').addEventListener('click', () => {
+      const chatWin = document.getElementById('chat-window');
+      chatWin.style.display = chatWin.style.display === 'none' ? 'flex' : 'none';
+      if (chatWin.style.display === 'flex') {
+        // ensure input focus
+        document.getElementById('chat-input').focus();
+      }
+    });
+
+    document.getElementById('close-chat').addEventListener('click', () => {
+      document.getElementById('chat-window').style.display = 'none';
+    });
+
+    const chatMessages = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+
+    async function sendMessage() {
+      const msg = chatInput.value.trim();
+      if (!msg) return;
+
+      // Add User Message
+      chatMessages.innerHTML += `<div class="message-wrapper right"><div class="chat-message user-message">${msg}</div></div>`;
+      chatInput.value = '';
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      // Collect context (simple scrape of visible data)
+      let context = "No specific context available.";
+      const profileName = document.querySelector('h1')?.innerText;
+
+      // Scrape stats from both Instagram (ps-card) and WhatsApp (stat-card)
+      // Updated to target new card structures
+      const cards = Array.from(document.querySelectorAll('.whatsapp-card, .instagram-card, .ps-card, .stat-card'));
+      const stats = cards.map(c => c.innerText.replace(/\n\n/g, ': ').replace(/\n/g, ' ')).join('; ');
+
+      if (profileName) context = `Page Title/User: ${profileName}. Stats: ${stats}`;
+
+      try {
+        // Show typing...
+        const typingId = 'typing-' + Date.now();
+        chatMessages.innerHTML += `<div id="${typingId}" class="message-wrapper left"><div class="chat-message bot-message typing">Typing...</div></div>`;
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: msg, context: context })
+        });
+        const data = await response.json();
+
+        document.getElementById(typingId).remove();
+
+        // Add Bot Message
+        let botMsg = data.response.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+        chatMessages.innerHTML += `<div class="message-wrapper left"><div class="chat-message bot-message">${botMsg}</div></div>`;
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      } catch (error) {
+        console.error(error);
+        const typingEl = document.getElementById(typingId);
+        if (typingEl) typingEl.remove();
+        chatMessages.innerHTML += `<div class="message-wrapper left"><div class="chat-message bot-message error">Error connecting to bot.</div></div>`;
+      }
+    }
+
+    document.getElementById('send-btn').addEventListener('click', sendMessage);
+    chatInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+  </script>
+</body>
+
+</html>

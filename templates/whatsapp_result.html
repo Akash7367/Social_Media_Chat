@@ -1,0 +1,653 @@
+{% extends parent_template|default("base.html") %}
+
+{% block content %}
+
+<!-- 
+    FINAL "STRICT" VERSION
+    Web Mode: 100% Original "Old Version" Code.
+    Download Mode: 
+    - Stats & Abuse Tables: 60% Width (Centered).
+    - Graphs: TABLE LAYOUT (Guaranteed 2 per row).
+    
+    NEW FEATURE: Contact Section Anchor.
+-->
+
+<!-- QR Code Library (Client Side) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+{% if download_mode %}
+<style>
+    /* DOWNLOAD SPECIFIC STYLES */
+    body {
+        font-family: 'Helvetica', 'Arial', sans-serif;
+    }
+
+    .page-break {
+        page-break-after: always;
+    }
+
+    /* General PDF Container */
+    .pdf-container {
+        width: 100%;
+        margin: 0 auto;
+        text-align: center;
+    }
+
+    /* Small & Attractive Cards for PDF */
+    .pdf-card {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        /* Rounded corners */
+        padding: 15px;
+        box-shadow: none;
+        text-align: center;
+        page-break-inside: avoid;
+    }
+
+    /* SPECIFIC: Stats & Abuse Table Container - SMALL WIDTH (60%) */
+    .stats-card-pdf {
+        width: 60%;
+        margin: 0 auto 30px;
+        display: block;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+    }
+
+    .pdf-card h3,
+    .stats-card-pdf h3 {
+        color: #667eea;
+        font-size: 16px;
+        margin-top: 0;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    /* GRAPH TABLE LAYOUT for PDF (Guaranteed 2 Cols) */
+    .graphs-table {
+        width: 100%;
+        border-collapse: separate;
+        /* Allow spacing */
+        border-spacing: 15px;
+        /* Gap between cards */
+        margin-bottom: 20px;
+        table-layout: fixed;
+        /* Fixed width cells */
+    }
+
+    .graphs-table td {
+        width: 50%;
+        vertical-align: top;
+        padding: 0;
+        /* Handled by border-spacing */
+    }
+
+    .pdf-img {
+        width: 100%;
+        max-height: 250px;
+        /* Suitable small size */
+        object-fit: contain;
+    }
+
+    /* Stats Table Styling */
+    .stats-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0 auto;
+    }
+
+    .stats-table th,
+    .stats-table td {
+        border: 1px solid #ddd;
+        padding: 12px;
+        text-align: left;
+        font-size: 14px;
+    }
+
+    .stats-table th {
+        background-color: #f8f9fa;
+        color: #333;
+        font-weight: bold;
+    }
+
+    .stats-table td {
+        color: #555;
+    }
+</style>
+{% endif %}
+
+<!-- QR CODE MODAL STYLES -->
+<style>
+    /* Modal Overlay */
+    #qrModal {
+        display: none;
+        /* Hidden by default */
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.5);
+        /* Black with opacity */
+        animation: fadeIn 0.3s;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Modal Content */
+    .qr-modal-content {
+        background-color: #fefefe;
+        margin: auto;
+        padding: 30px;
+        border: 1px solid #888;
+        width: 400px;
+        border-radius: 15px;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        position: relative;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    /* Close Button */
+    .close-qr {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        position: absolute;
+        right: 15px;
+        top: 5px;
+    }
+
+    .close-qr:hover,
+    .close-qr:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    /* Link Input Group */
+    .link-group {
+        display: flex;
+        gap: 5px;
+        margin-top: 15px;
+    }
+
+    .link-input {
+        flex: 1;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 0.9rem;
+        background: #f9f9f9;
+        color: #555;
+    }
+
+    .copy-btn {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .copy-btn:hover {
+        background: #5a67d8;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0
+        }
+
+        to {
+            opacity: 1
+        }
+    }
+</style>
+
+
+<div class="dashboard-layout">
+
+    <!-- SIDEBAR (HIDDEN IN DOWNLOAD MODE) -->
+    <aside class="dashboard-sidebar" {% if download_mode %}style="display:none;" {% endif %}>
+        {% if not download_mode %}
+        <div class="sidebar-nav">
+            <h3 style="margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #eee;">Menu</h3>
+            <nav style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <a href="#stats-overview" class="nav-item"><i class="fas fa-chart-line"></i> Stats Overview</a>
+                <a href="#graphs-section" class="nav-item"><i class="fas fa-chart-pie"></i> Activity Graphs</a>
+                <a href="#toxicity-section" class="nav-item"><i class="fas fa-exclamation-triangle"></i> Abuse
+                    Record</a>
+                <a href="#search-section" class="nav-item"><i class="fas fa-search"></i> Search Messages</a>
+                <hr style="margin: 10px 0; border: 0; border-top: 1px solid #eee;">
+
+                <a href="#" onclick="showQRCode(); return false;" class="nav-item"><i class="fas fa-qrcode"></i>
+                    Generate QR Code</a>
+                <a href="/download_report" class="nav-item"><i class="fas fa-file-download"></i> Download Report</a>
+
+                <!-- CONTACT / SUGGEST LINK (Redirects to Contact Page) -->
+                <a href="{{ url_for('contact') }}" class="nav-item"><i class="fas fa-lightbulb"></i> Suggest
+                    Improvement</a>
+
+                <a href="/whatsapp" class="nav-item" style="color: #dc3545;"><i class="fas fa-sync-alt"
+                        style="color: #dc3545;"></i> Analyse Another Report</a>
+            </nav>
+        </div>
+        {% endif %}
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="dashboard-content" {% if download_mode %}style="width: 100%; margin: 0; padding: 0;" {% endif %}>
+
+        <!-- HEADER -->
+        <div class="card"
+            style="margin-bottom: 2rem; {% if download_mode %}border:none; border-bottom: 2px solid #667eea; border-radius: 0; margin-bottom: 30px;{% endif %}">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <h1 style="margin:0;">Analysis: <span
+                        style="color: {{ '#667eea' if not download_mode else '#333' }};">{{ selected_user }}</span></h1>
+
+                {% if not download_mode %}
+                <form action="/analyze/whatsapp_result" method="POST"
+                    style="display: flex; gap: 10px; align-items: center;">
+                    <select name="user" style="padding: 0.5rem; border-radius: 5px; border: 1px solid #ddd;">
+                        {% for user in users %}
+                        <option value="{{ user }}" {% if user==selected_user %}selected{% endif %}>{{ user }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-primary"
+                        style="background: #667eea; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer;">Update</button>
+                </form>
+                {% else %}
+                <span style="color: #666; font-size: 0.8rem;">Generated by SocialAnalyser</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- STATS OVERVIEW -->
+        <div id="stats-overview" class="scroll-target" style="margin-bottom: 2rem;">
+            {% if download_mode %}
+            <!-- DOWNLOAD: Narrow Centered Table (60%) -->
+            <div class="stats-card-pdf">
+                <h3>Key Statistics</h3>
+                <table class="stats-table">
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                    </tr>
+                    <tr>
+                        <td>Total Messages</td>
+                        <td>{{ stats.num_messages }}</td>
+                    </tr>
+                    <tr>
+                        <td>Total Words</td>
+                        <td>{{ stats.words }}</td>
+                    </tr>
+                    <tr>
+                        <td>Media Shared</td>
+                        <td>{{ stats.num_media_messages }}</td>
+                    </tr>
+                    <tr>
+                        <td>Links Shared</td>
+                        <td>{{ stats.num_links }}</td>
+                    </tr>
+                </table>
+            </div>
+            {% else %}
+            <!-- WEB: Original 4-Column Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                <div class="card" style="text-align: center; padding: 1.5rem;">
+                    <i class="fab fa-whatsapp" style="font-size: 2.5rem; color: #25d366; margin-bottom: 1rem;"></i>
+                    <div style="font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem;">{{ stats.num_messages }}
+                    </div>
+                    <div style="color: #666;">Total Messages</div>
+                </div>
+                <div class="card" style="text-align: center; padding: 1.5rem;">
+                    <i class="fas fa-comment-dots" style="font-size: 2.5rem; color: #667eea; margin-bottom: 1rem;"></i>
+                    <div style="font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem;">{{ stats.words }}</div>
+                    <div style="color: #666;">Total Words</div>
+                </div>
+                <div class="card" style="text-align: center; padding: 1.5rem;">
+                    <i class="fas fa-camera" style="font-size: 2.5rem; color: #f6ad55; margin-bottom: 1rem;"></i>
+                    <div style="font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem;">{{ stats.num_media_messages
+                        }}</div>
+                    <div style="color: #666;">Media Shared</div>
+                </div>
+                <div class="card" style="text-align: center; padding: 1.5rem;">
+                    <i class="fas fa-link" style="font-size: 2.5rem; color: #4299e1; margin-bottom: 1rem;"></i>
+                    <div style="font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem;">{{ stats.num_links }}</div>
+                    <div style="color: #666;">Links Shared</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- GRAPHS SECTION -->
+        <div id="graphs-section" class="scroll-target" style="margin-bottom: 2rem;">
+
+            {% if download_mode %}
+            <!-- DOWNLOAD: TABLE LAYOUT FOR GUARANTEED 2 COLUMNS -->
+            <div class="pdf-container">
+
+                <table class="graphs-table">
+                    <tr>
+                        <td>
+                            <div class="pdf-card">
+                                <h3>Monthly Activity</h3>
+                                <img src="data:image/png;base64,{{ charts.monthly_timeline }}" class="pdf-img">
+                            </div>
+                        </td>
+                        <td>
+                            <div class="pdf-card">
+                                <h3>Daily Activity</h3>
+                                <img src="data:image/png;base64,{{ charts.daily_timeline }}" class="pdf-img">
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+
+                <table class="graphs-table">
+                    <tr>
+                        <td>
+                            <div class="pdf-card">
+                                <h3>Busiest Day</h3>
+                                <img src="data:image/png;base64,{{ charts.busy_day }}" class="pdf-img">
+                            </div>
+                        </td>
+                        <td>
+                            <div class="pdf-card">
+                                <h3>Busiest Month</h3>
+                                <img src="data:image/png;base64,{{ charts.busy_month }}" class="pdf-img">
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="pdf-card" style="width: 96%; margin: 0 auto 20px;">
+                    <h3>Activity Heatmap</h3>
+                    <img src="data:image/png;base64,{{ charts.heatmap }}" class="pdf-img" style="max-height: 200px;">
+                </div>
+
+                <table class="graphs-table">
+                    <tr>
+                        <td>
+                            <div class="pdf-card">
+                                <h3>Active Users</h3>
+                                {% if charts.busy_users %}
+                                <img src="data:image/png;base64,{{ charts.busy_users }}" class="pdf-img">
+                                {% else %}
+                                <p>Single User</p>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="pdf-card">
+                                <h3>Sentiment</h3>
+                                <img src="data:image/png;base64,{{ charts.sentiment }}" class="pdf-img">
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="pdf-card" style="width: 96%; margin: 0 auto 20px;">
+                    <h3>Key Topics</h3>
+                    <img src="data:image/png;base64,{{ charts.wordcloud }}" class="pdf-img">
+                </div>
+
+            </div>
+
+            {% else %}
+            <!-- WEB: Original Big Grid -->
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div class="card">
+                    <h3>Monthly Activity</h3>
+                    <img src="data:image/png;base64,{{ charts.monthly_timeline }}"
+                        style="width: 100%; height: auto; border-radius: 8px;">
+                </div>
+                <div class="card">
+                    <h3>Daily Activity</h3>
+                    <img src="data:image/png;base64,{{ charts.daily_timeline }}"
+                        style="width: 100%; height: auto; border-radius: 8px;">
+                </div>
+            </div>
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div class="card">
+                    <h3>Most Busy Day</h3>
+                    <img src="data:image/png;base64,{{ charts.busy_day }}"
+                        style="width: 100%; height: auto; border-radius: 8px;">
+                </div>
+                <div class="card">
+                    <h3>Most Busy Month</h3>
+                    <img src="data:image/png;base64,{{ charts.busy_month }}"
+                        style="width: 100%; height: auto; border-radius: 8px;">
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <h3>Weekly Heatmap</h3>
+                <img src="data:image/png;base64,{{ charts.heatmap }}"
+                    style="width: 100%; height: auto; max-height: 500px; object-fit: contain;">
+            </div>
+
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div class="card">
+                    <h3>Most Busy Users</h3>
+                    {% if charts.busy_users %}
+                    <img src="data:image/png;base64,{{ charts.busy_users }}"
+                        style="width: 100%; height: auto; border-radius: 8px;">
+                    {% else %}
+                    <p>Single User Mode</p>
+                    {% endif %}
+                </div>
+                <div class="card">
+                    <h3>Sentiment Analysis</h3>
+                    <img src="data:image/png;base64,{{ charts.sentiment }}"
+                        style="width: 100%; height: auto; border-radius: 8px;">
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Word Cloud</h3>
+                <img src="data:image/png;base64,{{ charts.wordcloud }}"
+                    style="width: 100%; height: auto; border-radius: 8px;">
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ABUSE REPORT -->
+        {% if not download_mode or (download_mode and toxicity) %}
+        <div id="toxicity-section" class="scroll-target" style="margin-bottom: 2rem;">
+            {% if download_mode %}
+            <!-- DOWNLOAD: Narrow 60% Width Container -->
+            <div class="stats-card-pdf">
+                <h3 style="color: #dc3545;">⚠️ Abuse Record</h3>
+                {% if toxicity %}
+                <table class="stats-table">
+                    <tr>
+                        <th>User</th>
+                        <th>Score</th>
+                        <th>Count</th>
+                    </tr>
+                    {% for item in toxicity %}
+                    <tr>
+                        <td>{{ item.user }}</td>
+                        <td><span style="color: {{ '#dc3545' if item.score > 5 else 'green' }}">{{ item.score }}</span>
+                        </td>
+                        <td>{{ item.count }} words</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                {% else %}
+                <p>No abusive language detected.</p>
+                {% endif %}
+            </div>
+            {% else %}
+            <!-- WEB: Original Red Left Border Card -->
+            <div class="card" style="border-left: 5px solid #dc3545;">
+                <h3 style="color: #dc3545;">⚠️ Abuse Record</h3>
+                {% if toxicity %}
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                        <thead>
+                            <tr style="background: #f8f9fa;">
+                                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">User</th>
+                                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Score</th>
+                                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Count</th>
+                                <th style="padding: 10px; text-align: left;">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in toxicity %}
+                            <tr style="border-bottom: 1px solid #eee;">
+                                <td style="padding: 10px; font-weight: bold; border: 1px solid #ddd;">{{ item.user }}
+                                </td>
+                                <td style="padding: 10px; border: 1px solid #ddd;">
+                                    <span
+                                        style="color: {{ '#dc3545' if item.score > 5 else '#28a745' }}; font-weight: bold;">{{
+                                        item.score }}</span>
+                                </td>
+                                <td style="padding: 10px; border: 1px solid #ddd;">{{ item.count }} words</td>
+                                <td style="padding: 10px;">
+                                    <details>
+                                        <summary style="cursor: pointer; color: #667eea;">View</summary>
+                                        <div style="margin-top: 10px; font-size: 0.9rem;">
+                                            {% for msg in item.messages %}
+                                            <div style="margin-bottom: 5px;">{{ msg.message }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </details>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p style="color: #28a745; font-weight: bold;">No abusive language detected.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- SEARCH (Web Only) -->
+        {% if not download_mode %}
+        <div id="search-section" class="card scroll-target" style="margin-bottom: 50px;">
+            <h3>Search Messages</h3>
+            <form action="/analyze/whatsapp_result#search-section" method="POST"
+                style="display: flex; gap: 10px; margin-bottom: 1rem;">
+                <input type="hidden" name="user" value="{{ selected_user }}">
+                <input type="text" name="search_query" placeholder="Enter keyword..."
+                    style="flex: 1; padding: 0.5rem; border: 1px solid #ddd; border-radius: 5px;">
+                <button type="submit" class="btn btn-primary"
+                    style="background: #667eea; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer;">Search</button>
+            </form>
+
+            {% if search_results %}
+            <div style="max-height: 400px; overflow-y: auto;">
+                {% for msg in search_results %}
+                <div
+                    style="background: #f9f9f9; padding: 10px; border-radius: 5px; margin-bottom: 10px; border: 1px solid #eee;">
+                    <div style="font-size: 0.8rem; color: #666; margin-bottom: 5px;"><b>{{ msg.user }}</b> • {{
+                        msg.date.strftime('%d/%m %H:%M') }}</div>
+                    <div>{{ msg.message }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        {% endif %}
+
+    </main>
+</div>
+
+<!-- QR CODE MODAL HTML -->
+<div id="qrModal" class="modal">
+    <div class="qr-modal-content">
+        <span class="close-qr" onclick="closeQRCode()">&times;</span>
+        <h3 style="margin-bottom: 15px; color: #333;">Scan to Download</h3>
+        <div id="qrcode" style="display: flex; justify-content: center; margin-bottom: 15px;"></div>
+
+        <!-- Link Display -->
+        <div class="link-group">
+            <input type="text" id="qrLinkInput" class="link-input" readonly value="">
+            <button onclick="copyQrLink()" class="copy-btn">Copy</button>
+        </div>
+
+        <p style="font-size: 0.8rem; color: #dc3545; margin-top: 15px;">
+            <strong>Note:</strong> Network access required. Ensure the device is on the <strong>same Wi-Fi</strong>.
+        </p>
+    </div>
+</div>
+
+<!-- QR CODE SCRIPTS -->
+<script>
+    function showQRCode() {
+        var modal = document.getElementById("qrModal");
+        var qrContainer = document.getElementById("qrcode");
+        var linkInput = document.getElementById("qrLinkInput");
+
+        // Clear previous QR
+        qrContainer.innerHTML = "";
+
+        // Construct (try to use hostname if possible, otherwise just current origin)
+        var currentUrl = window.location.origin;
+        var downloadUrl = currentUrl + "/download_report";
+
+        // Populate Input
+        linkInput.value = downloadUrl;
+
+        // Generate QR
+        new QRCode(qrContainer, {
+            text: downloadUrl,
+            width: 200,
+            height: 200,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+
+        // Show Modal
+        modal.style.display = "block";
+        modal.style.display = "flex"; // Centering
+    }
+
+    function closeQRCode() {
+        var modal = document.getElementById("qrModal");
+        modal.style.display = "none";
+    }
+
+    function copyQrLink() {
+        var copyText = document.getElementById("qrLinkInput");
+        copyText.select();
+        copyText.setSelectionRange(0, 99999); // Mobile
+        navigator.clipboard.writeText(copyText.value).then(function () {
+            alert("Link copied to clipboard!");
+        });
+    }
+
+    // Close on outside click
+    window.onclick = function (event) {
+        var modal = document.getElementById("qrModal");
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
+</script>
+
+{% endblock %}

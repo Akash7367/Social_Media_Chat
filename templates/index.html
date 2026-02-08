@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero">
+    <h1>Social Media Analysis Tool</h1>
+    <p>Select a platform to start analyzing</p>
+
+    <div class="grid-cols-2" style="max-width: 800px; margin: 0 auto;">
+        <a href="/whatsapp" class="whatsapp-card" style="text-decoration: none; color: inherit; display: block;">
+            <i class="fab fa-whatsapp card-icon"></i>
+            <h2>WhatsApp</h2>
+            <p style="margin-bottom: 2rem;">Upload chat export (.txt) to analyze messages, timeline, and activity.</p>
+            <span class="btn" style="background: #25D366; color: white;">Analyze WhatsApp</span>
+        </a>
+
+        <a href="/instagram" class="instagram-card" style="text-decoration: none; color: inherit; display: block;">
+            <i class="fab fa-instagram card-icon"></i>
+            <h2>Instagram</h2>
+            <p style="margin-bottom: 2rem;">Enter a public username to analyze profile stats and engagement.</p>
+            <span class="btn" style="background:linear-gradient(45deg, #f09433 0%, #dc2743 100%); color: white;">Analyze
+                Instagram</span>
+        </a>
+    </div>
+</div>
+{% endblock %}

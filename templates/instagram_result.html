@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% if is_demo %}
+<div
+    style="background-color: #fff3cd; color: #856404; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid #ffeeba; display: flex; align-items: center; gap: 1rem;">
+    <span style="font-size: 1.5rem;">⚠️</span>
+    <div>
+        <strong>Demo Mode Active</strong><br>
+        Instagram blocked the request (Rate Limit / Login Wall). Showing <strong>Mock Data</strong> or <strong>Partial
+            Data</strong>. <br>
+        <em>This is usually a temporary network restriction. Try again later or use a different network.</em>
+    </div>
+</div>
+{% endif %}
+
+<div class="profile-header">
+    <img src="{{ profile.profile_pic_url }}" alt="Profile Pic" class="profile-img">
+    <div class="profile-info">
+        <h1>{{ profile.username }}
+            <!-- Instagram Icon SVG -->
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e1306c" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+            </svg>
+        </h1>
+        <p style="color: #777; margin: 0;">{{ profile.full_name }}</p>
+        <p style="color: #555; margin-top: 0.5rem;">{{ profile.biography[:150] }}...</p>
+    </div>
+
+    <!-- Stats Grid moved here to right side for desktop? No, keep logic simple below -->
+</div>
+
+<!-- PathSocial Style Grid: 4 dark cards -->
+<div class="grid-cols-2" style="margin-bottom: 2rem;">
+    <!-- Left Col (Profile) is above. Actually screenshot has Cards on Right of Profile.
+         Let's stick to Grid below for responsiveness -->
+</div>
+
+<div class="grid-cols-3"
+    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+    <div class="instagram-card">
+        <i class="fas fa-image card-icon"></i>
+        <div class="ps-label">Uploads</div>
+        <div class="ps-value">{{ profile.uploads }}</div>
+    </div>
+    <div class="instagram-card">
+        <i class="fas fa-users card-icon"></i>
+        <div class="ps-label">Followers</div>
+        <div class="ps-value">{{ profile.followers }}</div>
+    </div>
+    <div class="instagram-card">
+        <i class="fas fa-chart-line card-icon"></i>
+        <div class="ps-label">Engagement</div>
+        <div class="ps-value">{{ "%.2f"|format(stats.engagement_rate) }}%</div>
+    </div>
+    <div class="instagram-card">
+        <i class="fas fa-heart card-icon"></i>
+        <div class="ps-label">Avg Likes</div>
+        <div class="ps-value">{{ "%.0f"|format(stats.average_likes) }}</div>
+    </div>
+    <div class="instagram-card">
+        <i class="fas fa-comment card-icon"></i>
+        <div class="ps-label">Avg Comments</div>
+        <div class="ps-value">{{ "%.0f"|format(stats.average_comments) }}</div>
+    </div>
+    <div class="instagram-card">
+        <i class="fas fa-bolt card-icon"></i>
+        <div class="ps-label">Avg Activity</div>
+        <div class="ps-value">{{ "%.2f"|format(activity.posts_per_week) }}<span style="font-size:0.4em">/wk</span></div>
+    </div>
+</div>
+
+<!-- Activity Graphs -->
+<div class="grid-cols-3" style="margin-bottom: 2rem;">
+    <div class="ps-white-card graph-container">
+        <img src="data:image/png;base64,{{ graphs.daily_chart }}" style="width: 100%;">
+        <p style="font-weight: bold; font-size: 1.1rem; color: #3f3d56; margin-top: 1rem;">{{
+            "%.2f"|format(activity.posts_per_day) }} <span
+                style="font-size: 0.9rem; color: #777; font-weight: normal;">Posts per day</span></p>
+    </div>
+    <div class="ps-white-card graph-container">
+        <img src="data:image/png;base64,{{ graphs.weekly_chart }}" style="width: 100%;">
+        <p style="font-weight: bold; font-size: 1.1rem; color: #3f3d56; margin-top: 1rem;">{{
+            "%.2f"|format(activity.posts_per_week) }} <span
+                style="font-size: 0.9rem; color: #777; font-weight: normal;">Posts per week</span></p>
+    </div>
+    <div class="ps-white-card graph-container">
+        <img src="data:image/png;base64,{{ graphs.monthly_chart }}" style="width: 100%;">
+        <p style="font-weight: bold; font-size: 1.1rem; color: #3f3d56; margin-top: 1rem;">{{
+            "%.2f"|format(activity.posts_per_month) }} <span
+                style="font-size: 0.9rem; color: #777; font-weight: normal;">Posts per month</span></p>
+    </div>
+</div>
+
+<!-- Top Content -->
+<h2 style="color: #3f3d56;">Top Content</h2>
+<div class="grid-cols-2">
+    {% if top_content.most_liked is not none %}
+    <div class="post-card">
+        {% if top_content.most_liked.is_video %}
+        <video controls src="{{ top_content.most_liked.url }}"></video>
+        {% else %}
+        <img src="{{ top_content.most_liked.url }}" alt="Most Liked Post">
+        {% endif %}
+        <div class="post-details">
+            <h3 style="color: var(--primary-color);">Most Liked ❤️</h3>
+            <p><strong>{{ top_content.most_liked.likes }}</strong> Likes &bull; <strong>{{
+                    top_content.most_liked.comments }}</strong> Comments</p>
+            <p style="font-size: 0.9rem; color: #666;">{{ top_content.most_liked.caption[:100] }}...</p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if top_content.most_commented is not none %}
+    <div class="post-card">
+        {% if top_content.most_commented.is_video %}
+        <video controls src="{{ top_content.most_commented.url }}"></video>
+        {% else %}
+        <img src="{{ top_content.most_commented.url }}" alt="Most Commented Post">
+        {% endif %}
+        <div class="post-details">
+            <h3 style="color: var(--primary-color);">Most Commented 💬</h3>
+            <p><strong>{{ top_content.most_commented.likes }}</strong> Likes &bull; <strong>{{
+                    top_content.most_commented.comments }}</strong> Comments</p>
+            <p style="font-size: 0.9rem; color: #666;">{{ top_content.most_commented.caption[:100] }}...</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div style="text-align: center; margin-top: 2rem;">
+    <a href="/instagram" class="btn btn-secondary">Search Another Profile</a>
+</div>
+{% endblock %}

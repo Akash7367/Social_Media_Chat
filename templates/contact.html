@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card" style="max-width: 800px; margin: 2rem auto; text-align: center; padding: 3rem;">
+    <h1 style="color: #3f3d56; margin-bottom: 1.5rem;">Get in Touch</h1>
+    <p style="color: #777; font-size: 1.1rem; margin-bottom: 2rem;">
+        Have questions, feedback, or need help with the Chat Analyser? Reach out to us!
+    </p>
+
+    <div class="grid-cols-2" style="gap: 2rem; margin-top: 2rem;">
+        <!-- Email Section -->
+        <div class="ps-white-card" style="text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📧</div>
+            <h3>Email Us</h3>
+            <p>support@chatanalyser.com</p>
+            <a href="mailto:support@chatanalyser.com" class="btn btn-secondary" style="margin-top: 1rem;">Send Email</a>
+        </div>
+
+        <!-- Telegram Section -->
+        <div class="ps-white-card" style="text-align: center; border-color: #0088cc;">
+            <!-- Telegram Icon SVG -->
+            <div style="margin-bottom: 1rem;">
+                <svg width="60" height="60" viewBox="0 0 240 240">
+                    <circle cx="120" cy="120" r="120" fill="#2CA5E0" />
+                    <path fill="#FFF" d="M54 118l33 11 106-64-88 78 3 33 22-21 39 29 20-99z" />
+                </svg>
+            </div>
+            <h3>Join our Telegram</h3>
+            <p>Get updates and support instantly.</p>
+            <a href="https://t.me/whatsapp_chat_analysis" target="_blank" class="btn btn-primary"
+                style="background-color: #0088cc; margin-top: 1rem;">Join Channel</a>
+        </div>
+    </div>
+
+    <div style="margin-top: 3rem; text-align: left;">
+        <h3>Feedback Form</h3>
+        <form action="/send_message" method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="text" name="name" placeholder="Your Name" required
+                style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            <input type="email" name="email" placeholder="Your Email" required
+                style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            <textarea name="message" placeholder="Your Message" rows="5" required
+                style="width: 100%; padding: 1rem; border: 2px solid #eee; border-radius: 12px; font-family: inherit; font-size: 1rem;"></textarea>
+            <button type="submit" class="btn btn-primary">Send Message</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

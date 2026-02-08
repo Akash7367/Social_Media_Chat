@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+    <div class="card">
+        <h2 style="text-align: center; color: var(--primary-color);">Instagram Profile Analysis</h2>
+        <form action="/analyze/instagram" method="POST">
+            <label for="username">Instagram Username (Public Only)</label>
+            <input type="text" id="username" name="username" placeholder="e.g., instagram, codewithharry" required>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Fetch & Analyze</button>
+        </form>
+    </div>
+
+    <div style="text-align: center; color: #666; font-size: 0.9rem;">
+        <p>Note: This tool uses public data. Rate limits may apply.</p>
+    </div>
+</div>
+{% endblock %}
