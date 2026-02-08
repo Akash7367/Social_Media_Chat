@@ -3,7 +3,7 @@ import pandas as pd
 
 def preprocess(data):
     # Tuple of (regex_split, date_format, is_ios)
-    # The patterns are prioritized. iOS has brackets, distinctive. 12h has AM/PM. 24h is standard.
+    # The patterns are prioritized. iOS has brackets, distinctive. 12h has AM/PM. 24h is standard
     
     patterns = [
         {
