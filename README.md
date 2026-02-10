@@ -18,5 +18,6 @@ A comprehensive tool to analyse WhatsApp chat exports.
    ```
 2. Run the app:
    ```bash
-   streamlit run app.py
+   python app.py
    ```
+
