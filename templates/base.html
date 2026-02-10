@@ -13,13 +13,42 @@
 <body>
   <nav class="navbar">
     <a href="/" class="navbar-brand">📊 SocialAnalyser</a>
-    <a href="/" class="btn" style="color:#333; background:none;">Home</a>
-    <a href="/contact" class="btn" style="color:#333; background:none;">Contact</a>
-    <button id="theme-toggle" class="btn" style="background:none; font-size: 1.2rem; cursor: pointer;">🌓</button>
+
+    <!-- Hamburger Menu Button (Mobile Only) -->
+    <button id="hamburger-btn" class="hamburger-menu" aria-label="Toggle menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <!-- Navigation Links -->
+    <div class="nav-links" id="nav-links">
+      <a href="/" class="btn nav-btn">Home</a>
+      <a href="/contact" class="btn nav-btn">Contact</a>
+      <button id="theme-toggle" class="btn nav-btn"
+        style="background:none; font-size: 1.2rem; cursor: pointer;">🌓</button>
     </div>
   </nav>
 
   <script>
+    // Hamburger Menu Toggle
+    const hamburgerBtn = document.getElementById('hamburger-btn');
+    const navLinks = document.getElementById('nav-links');
+
+    hamburgerBtn.addEventListener('click', () => {
+      navLinks.classList.toggle('active');
+      hamburgerBtn.classList.toggle('active');
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!hamburgerBtn.contains(e.target) && !navLinks.contains(e.target)) {
+        navLinks.classList.remove('active');
+        hamburgerBtn.classList.remove('active');
+      }
+    });
+
+    // Theme Toggle
     const toggleBtn = document.getElementById('theme-toggle');
     const body = document.body;
 

@@ -215,14 +215,67 @@
         }
     }
 </style>
+<style>
+    /* On mobile for this page: hide hamburger, show Home & Theme toggle directly in navbar */
+    @media (max-width: 768px) {
+        .navbar .hamburger-menu {
+            display: none !important;
+        }
 
+        /* Override mobile hiding of nav-links - show directly in a row */
+        .navbar .nav-links {
+            display: flex !important;
+            position: static !important;
+            max-height: none !important;
+            opacity: 1 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            gap: 0.4rem !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            width: auto !important;
+            overflow: visible !important;
+        }
+
+        /* Hide Contact from the navbar (it's in sidebar as 'Suggest Improvement') */
+        .navbar .nav-links a[href="/contact"] {
+            display: none !important;
+        }
+
+        /* Uniform style for ALL nav buttons (Home + Theme toggle) */
+        .navbar .nav-links .nav-btn,
+        .navbar .nav-links #theme-toggle {
+            padding: 0.35rem 0.7rem !important;
+            font-size: 0.8rem !important;
+            border: 1px solid rgba(0, 0, 0, 0.1) !important;
+            border-radius: 8px !important;
+            width: auto !important;
+            height: auto !important;
+            line-height: 1.2 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+    }
+</style>
 
 <div class="dashboard-layout">
+
+    {% if not download_mode %}
+    <!-- Mobile Menu Button (OUTSIDE sidebar so it's always visible) -->
+    <button id="mobile-menu-toggle" class="mobile-menu-btn" aria-label="Toggle menu">
+        <i class="fas fa-bars"></i>
+        <span>Menu</span>
+    </button>
+    {% endif %}
 
     <!-- SIDEBAR (HIDDEN IN DOWNLOAD MODE) -->
     <aside class="dashboard-sidebar" {% if download_mode %}style="display:none;" {% endif %}>
         {% if not download_mode %}
-        <div class="sidebar-nav">
+
+        <div class="sidebar-nav" id="sidebar-nav">
             <h3 style="margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #eee;">Menu</h3>
             <nav style="display: flex; flex-direction: column; gap: 0.5rem;">
                 <a href="#stats-overview" class="nav-item"><i class="fas fa-chart-line"></i> Stats Overview</a>
@@ -242,10 +295,15 @@
 
                 <a href="/whatsapp" class="nav-item" style="color: #dc3545;"><i class="fas fa-sync-alt"
                         style="color: #dc3545;"></i> Analyse Another Report</a>
+
+
             </nav>
         </div>
         {% endif %}
     </aside>
+
+    <!-- Backdrop Overlay for Mobile Menu -->
+    <div class="menu-backdrop" id="menu-backdrop"></div>
 
     <!-- MAIN CONTENT -->
     <main class="dashboard-content" {% if download_mode %}style="width: 100%; margin: 0; padding: 0;" {% endif %}>
@@ -646,6 +704,40 @@
         var modal = document.getElementById("qrModal");
         if (event.target == modal) {
             modal.style.display = "none";
+        }
+    }
+
+    // Mobile Menu Toggle for Sidebar
+    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    const dashboardSidebar = document.querySelector('.dashboard-sidebar');
+    const menuBackdrop = document.getElementById('menu-backdrop');
+    const sidebarNav = document.getElementById('sidebar-nav');
+
+    if (mobileMenuToggle && dashboardSidebar) {
+        mobileMenuToggle.addEventListener('click', function () {
+            dashboardSidebar.classList.toggle('active');
+            if (menuBackdrop) menuBackdrop.classList.toggle('active');
+        });
+
+        // Close menu when clicking backdrop
+        if (menuBackdrop) {
+            menuBackdrop.addEventListener('click', function () {
+                dashboardSidebar.classList.remove('active');
+                menuBackdrop.classList.remove('active');
+            });
+        }
+
+        // Close menu when clicking on a nav item
+        if (sidebarNav) {
+            const navItems = sidebarNav.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.addEventListener('click', function () {
+                    if (window.innerWidth <= 768) {
+                        dashboardSidebar.classList.remove('active');
+                        if (menuBackdrop) menuBackdrop.classList.remove('active');
+                    }
+                });
+            });
         }
     }
 </script>
