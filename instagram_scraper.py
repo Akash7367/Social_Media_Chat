@@ -4,7 +4,6 @@ import requests
 import re
 import json
 from datetime import datetime, timedelta
-import streamlit as st
 
 
 def get_mock_data(username):

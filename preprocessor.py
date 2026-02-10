@@ -94,7 +94,7 @@ def preprocess(data):
     for message in df['user_message']:
         # Split user and message
         # Regex to find "User: " at start of message
-        entry = re.split('([\w\W]+?):\s', message)
+        entry = re.split(r'([\w\W]+?):\s', message)
         if len(entry) > 1:
             users.append(entry[1])
             msgs.append(" ".join(entry[2:]))
