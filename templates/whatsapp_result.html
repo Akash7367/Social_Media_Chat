@@ -539,6 +539,7 @@
                         <th>User</th>
                         <th>Score</th>
                         <th>Count</th>
+                        <th>Details (Word — Date & Time)</th>
                     </tr>
                     {% for item in toxicity %}
                     <tr>
@@ -546,6 +547,14 @@
                         <td><span style="color: {{ '#dc3545' if item.score > 5 else 'green' }}">{{ item.score }}</span>
                         </td>
                         <td>{{ item.count }} words</td>
+                        <td style="font-size: 0.8rem;">
+                            {% for msg in item.messages %}
+                            <div style="margin-bottom: 4px;">
+                                <strong style="color: #dc3545;">{{ msg.words | join(', ') }}</strong>
+                                — {{ msg.date.strftime('%d/%m/%Y %I:%M %p') }}
+                            </div>
+                            {% endfor %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </table>
@@ -559,32 +568,40 @@
                 <h3 style="color: #dc3545;">⚠️ Abuse Record</h3>
                 {% if toxicity %}
                 <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                    <table class="toxicity-table">
                         <thead>
-                            <tr style="background: #f8f9fa;">
-                                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">User</th>
-                                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Score</th>
-                                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Count</th>
-                                <th style="padding: 10px; text-align: left;">Details</th>
+                            <tr class="toxicity-header-row">
+                                <th>User</th>
+                                <th>Score</th>
+                                <th>Count</th>
+                                <th>Details</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for item in toxicity %}
-                            <tr style="border-bottom: 1px solid #eee;">
-                                <td style="padding: 10px; font-weight: bold; border: 1px solid #ddd;">{{ item.user }}
-                                </td>
-                                <td style="padding: 10px; border: 1px solid #ddd;">
-                                    <span
+                            <tr>
+                                <td style="font-weight: bold;">{{ item.user }}</td>
+                                <td>
+                                    <span class="toxicity-badge"
                                         style="color: {{ '#dc3545' if item.score > 5 else '#28a745' }}; font-weight: bold;">{{
                                         item.score }}</span>
                                 </td>
-                                <td style="padding: 10px; border: 1px solid #ddd;">{{ item.count }} words</td>
-                                <td style="padding: 10px;">
+                                <td>{{ item.count }} words</td>
+                                <td>
                                     <details>
-                                        <summary style="cursor: pointer; color: #667eea;">View</summary>
-                                        <div style="margin-top: 10px; font-size: 0.9rem;">
+                                        <summary class="view-details-link">View</summary>
+                                        <div class="toxicity-details-box">
                                             {% for msg in item.messages %}
-                                            <div style="margin-bottom: 5px;">{{ msg.message }}</div>
+                                            <div class="toxicity-msg-item"
+                                                style="border-left: 3px solid #dc3545; padding-left: 8px;">
+                                                <span class="msg-date">
+                                                    <i class="fas fa-clock"></i> {{ msg.date.strftime('%d/%m/%Y %I:%M
+                                                    %p') }}
+                                                    — <span class="msg-match">{{ msg.words |
+                                                        join(', ') }}</span>
+                                                </span>
+                                                <span class="msg-text">{{ msg.message }}</span>
+                                            </div>
                                             {% endfor %}
                                         </div>
                                     </details>
