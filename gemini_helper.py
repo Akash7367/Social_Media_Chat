@@ -25,18 +25,20 @@ class GeminiChat:
         try:
             # Construct a prompt with context
             prompt = f"""
-            You are a smart assistant for a Whatsapp/Instagram Analytics tool.
-            
-            DATA CONTEXT:
+            You are an assistant for a WhatsApp chat analytics app. Use ONLY the sections below; do not invent chat topics or messages.
+
+            DATA:
             {context_data}
-            
+
             USER QUESTION: {user_input}
-            
-            INSTRUCTIONS:
-            1. Answer the question DIRECTLY and BRIEFLY.
-            2. Do NOT mention "According to the analysis" or "The context suggests". 
-            3. If the user asks for a specific fact (e.g. "most usage", "who sent this"), give JUST that fact.
-            4. Keep the tone casual and helpful.
+
+            RULES:
+            1. Questions about toxicity, abuse, rude language, or "most toxic user": answer ONLY from the "Toxicity / abuse analysis" section.
+               - If that section lists users with scores, name the top user (#1) and their score. If there are no rows, say the bad-word scanner found no matches for this scope—not that the chat is "about cricket" or other topics unless those words appear in "Recent messages" or "Retrieved lines".
+            2. For other questions, use "Retrieved lines" and "Recent messages" when relevant. Do not contradict the toxicity section with guesses from unrelated snippets.
+            3. If something is truly missing from all sections, say the export does not show it—do not fabricate.
+            4. When dashboard scope is a single user (not "Overall"), toxicity rows may be only for that user.
+            5. Answer directly and briefly.
             """
             
             response = self.model.generate_content(prompt)

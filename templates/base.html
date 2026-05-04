@@ -168,6 +168,9 @@
 
       if (profileName) context = `Page Title/User: ${profileName}. Stats: ${stats}`;
 
+      const scopeEl = document.getElementById('whatsapp-chat-scope');
+      const selectedUser = scopeEl ? scopeEl.value.trim() : 'Overall';
+
       try {
         // Show typing...
         const typingId = 'typing-' + Date.now();
@@ -177,7 +180,7 @@
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: msg, context: context })
+          body: JSON.stringify({ message: msg, context: context, selected_user: selectedUser })
         });
         const data = await response.json();
 

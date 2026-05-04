@@ -3,6 +3,7 @@ from wordcloud import WordCloud
 import pandas as pd
 from collections import Counter
 import emoji
+import os
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 extract = URLExtract()
@@ -158,30 +159,68 @@ def sentiment_analysis(selected_user, df):
     
     return sentiment_counts, df
 
+def _load_bad_words():
+    path = os.path.join(os.path.dirname(__file__), 'bad_words.txt')
+    if not os.path.isfile(path):
+        return []
+    terms = []
+    seen = set()
+    with open(path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            t = line.lower()
+            if t not in seen:
+                seen.add(t)
+                terms.append(t)
+    return terms
+
+def _bad_word_triggers(msg_lower, terms):
+    """Match multi-word phrases first (masked), then whole tokens for single words."""
+    if not terms or not msg_lower:
+        return []
+    phrases = sorted([t for t in terms if ' ' in t], key=len, reverse=True)
+    singles = [t for t in terms if ' ' not in t]
+    masked = msg_lower
+    found = []
+    for p in phrases:
+        c = masked.count(p)
+        if c:
+            found.extend([p] * c)
+            masked = masked.replace(p, ' ' * len(p))
+    punct = '.,!?;:()[]{}"\'-'
+    tokens = []
+    for raw in masked.split():
+        w = raw.strip(punct).lower()
+        if w:
+            tokens.append(w)
+    for s in singles:
+        n = tokens.count(s)
+        if n:
+            found.extend([s] * n)
+    return found
+
 def analyze_toxicity(selected_user, df):
-    # Valid "Bad Words" List (English + Hindi/Hinglish)
-    # Added common Romanized Hindi abusive words
-    BAD_WORDS = [
-        "stupid", "idiot", "shut up", "damn", "hell", "useless", "dumb", "crazy", "nonsense", "rubbish", "mad",
-        "pagal", "kutta", "kamina", "saala", "bhaad", "besharam", "behaya", "ullu", "gadha", "bewakoof", "nalayak",
-        "chutiya", "gandu", "bhosdike", "bsdk", "mc", "bc", "behenchod", "madarchod", "harami", "kamine"
-    ]
-    
+    bad_terms = _load_bad_words()
+    if not bad_terms:
+        return []
+
     if selected_user != 'Overall':
         df = df[df['user'] == selected_user]
-        
+
     toxic_data = []
-    
-    # Iterate through users
+
+    # PASS 1: Collect raw bad word counts per user
     for user in df['user'].unique():
         user_msgs = df[df['user'] == user]
         bad_count = 0
         abusive_messages = []
-        
+
         for index, row in user_msgs.iterrows():
             msg_lower = str(row['message']).lower()
-            triggered_words = [word for word in BAD_WORDS if word in msg_lower.split()]
-            
+            triggered_words = _bad_word_triggers(msg_lower, bad_terms)
+
             if triggered_words:
                 bad_count += len(triggered_words)
                 abusive_messages.append({
@@ -189,22 +228,28 @@ def analyze_toxicity(selected_user, df):
                     'message': row['message'],
                     'words': triggered_words
                 })
-        
+
         if bad_count > 0:
-            # Score Calculation (Heuristic)
-            # 1 = Good, 10 = Abusive
-            # Base 1. Each bad word adds 0.5? Cap at 10.
-            score = 1 + (bad_count * 0.5)
-            if score > 10: score = 10
-            
             toxic_data.append({
                 'user': user,
-                'score': round(score, 1),
                 'count': bad_count,
                 'messages': abusive_messages
             })
-            
-    # Sort by Score Descending
+
+    if not toxic_data:
+        return []
+
+    # PASS 2: Relative Normalization — most toxic user gets 10.0, others scale proportionally
+    # Formula: score = 1 + (user_count / max_count) * 9
+    # Example: max=200 words → 10.0 | 100 words → 5.5 | 50 words → 3.25
+    max_count = max(entry['count'] for entry in toxic_data)
+
+    for entry in toxic_data:
+        normalized = entry['count'] / max_count        # 0.0 to 1.0
+        score = 1 + (normalized * 9)                   # 1.0 to 10.0
+        entry['score'] = round(score, 1)
+
+    # Sort by score descending (most toxic first)
     toxic_data = sorted(toxic_data, key=lambda x: x['score'], reverse=True)
-    
+
     return toxic_data

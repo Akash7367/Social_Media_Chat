@@ -4,9 +4,21 @@ seaborn
 emoji
 wordcloud
 vaderSentiment
+pandas
+matplotlib
+seaborn
+emoji
+wordcloud
+vaderSentiment
 urlextract
 instaloader
 flask
 google-generativeai
 python-dotenv
 gunicorn
+
+# Added for voice assistant and vector search capabilities
+SpeechRecognition
+pyttsx3
+PyAudio
+chromadb

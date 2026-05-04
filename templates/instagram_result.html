@@ -1,15 +1,31 @@
 {% extends "base.html" %}
 
 {% block content %}
-{% if is_demo %}
+{% if data_source == "demo" %}
 <div
     style="background-color: #fff3cd; color: #856404; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid #ffeeba; display: flex; align-items: center; gap: 1rem;">
     <span style="font-size: 1.5rem;">⚠️</span>
     <div>
         <strong>Demo Mode Active</strong><br>
-        Instagram blocked the request (Rate Limit / Login Wall). Showing <strong>Mock Data</strong> or <strong>Partial
-            Data</strong>. <br>
+        Instagram blocked the request (Rate Limit / Login Wall). Showing <strong>Mock Data</strong>.<br>
         <em>This is usually a temporary network restriction. Try again later or use a different network.</em>
+    </div>
+</div>
+{% elif data_source == "partial" %}
+<div
+    style="background-color: #cce5ff; color: #004085; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid #b8daff; display: flex; align-items: center; gap: 1rem;">
+    <span style="font-size: 1.5rem;">ℹ️</span>
+    <div>
+        <strong>Profile Data is Real</strong> — Post analytics below are estimated (sample data).<br>
+        <em>Instagram limits access to individual post data without login. Profile stats above are accurate.</em>
+    </div>
+</div>
+{% elif data_source == "cached" %}
+<div
+    style="background-color: #d4edda; color: #155724; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid #c3e6cb; display: flex; align-items: center; gap: 0.75rem;">
+    <span style="font-size: 1.2rem;">📦</span>
+    <div>
+        <strong>Cached Data</strong> — Loaded from recent cache. Post analytics are estimated.
     </div>
 </div>
 {% endif %}
@@ -27,49 +43,69 @@
             </svg>
         </h1>
         <p style="color: #777; margin: 0;">{{ profile.full_name }}</p>
-        <p style="color: #555; margin-top: 0.5rem;">{{ profile.biography[:150] }}...</p>
+        {% if profile.biography %}
+        <p style="color: #555; margin-top: 0.5rem;">{{ profile.biography[:150] }}{% if profile.biography|length > 150
+            %}...{% endif %}</p>
+        {% endif %}
     </div>
-
-    <!-- Stats Grid moved here to right side for desktop? No, keep logic simple below -->
 </div>
 
-<!-- PathSocial Style Grid: 4 dark cards -->
-<div class="grid-cols-2" style="margin-bottom: 2rem;">
-    <!-- Left Col (Profile) is above. Actually screenshot has Cards on Right of Profile.
-         Let's stick to Grid below for responsiveness -->
-</div>
-
+<!-- Stats Grid -->
 <div class="grid-cols-3"
     style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
     <div class="instagram-card">
         <i class="fas fa-image card-icon"></i>
         <div class="ps-label">Uploads</div>
-        <div class="ps-value">{{ profile.uploads }}</div>
+        <div class="ps-value">{{ "{:,}".format(profile.uploads) }}</div>
+        {% if data_source == "live" or data_source == "partial" or data_source == "cached" %}
+        <span style="font-size: 0.7rem; color: #28a745;">✓ Real</span>
+        {% endif %}
     </div>
     <div class="instagram-card">
         <i class="fas fa-users card-icon"></i>
         <div class="ps-label">Followers</div>
-        <div class="ps-value">{{ profile.followers }}</div>
+        <div class="ps-value">{{ "{:,}".format(profile.followers) }}</div>
+        {% if data_source == "live" or data_source == "partial" or data_source == "cached" %}
+        <span style="font-size: 0.7rem; color: #28a745;">✓ Real</span>
+        {% endif %}
+    </div>
+    <div class="instagram-card">
+        <i class="fas fa-user-friends card-icon"></i>
+        <div class="ps-label">Following</div>
+        <div class="ps-value">{{ "{:,}".format(profile.following) }}</div>
+        {% if data_source == "live" or data_source == "partial" or data_source == "cached" %}
+        <span style="font-size: 0.7rem; color: #28a745;">✓ Real</span>
+        {% endif %}
     </div>
     <div class="instagram-card">
         <i class="fas fa-chart-line card-icon"></i>
         <div class="ps-label">Engagement</div>
         <div class="ps-value">{{ "%.2f"|format(stats.engagement_rate) }}%</div>
+        {% if data_source != "live" %}
+        <span style="font-size: 0.7rem; color: #fd7e14;">~ Estimated</span>
+        {% else %}
+        <span style="font-size: 0.7rem; color: #28a745;">✓ Real</span>
+        {% endif %}
     </div>
     <div class="instagram-card">
         <i class="fas fa-heart card-icon"></i>
         <div class="ps-label">Avg Likes</div>
         <div class="ps-value">{{ "%.0f"|format(stats.average_likes) }}</div>
-    </div>
-    <div class="instagram-card">
-        <i class="fas fa-comment card-icon"></i>
-        <div class="ps-label">Avg Comments</div>
-        <div class="ps-value">{{ "%.0f"|format(stats.average_comments) }}</div>
+        {% if data_source != "live" %}
+        <span style="font-size: 0.7rem; color: #fd7e14;">~ Estimated</span>
+        {% else %}
+        <span style="font-size: 0.7rem; color: #28a745;">✓ Real</span>
+        {% endif %}
     </div>
     <div class="instagram-card">
         <i class="fas fa-bolt card-icon"></i>
         <div class="ps-label">Avg Activity</div>
         <div class="ps-value">{{ "%.2f"|format(activity.posts_per_week) }}<span style="font-size:0.4em">/wk</span></div>
+        {% if data_source != "live" %}
+        <span style="font-size: 0.7rem; color: #fd7e14;">~ Estimated</span>
+        {% else %}
+        <span style="font-size: 0.7rem; color: #28a745;">✓ Real</span>
+        {% endif %}
     </div>
 </div>
 

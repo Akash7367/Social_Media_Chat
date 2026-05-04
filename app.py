@@ -27,6 +27,9 @@ if "GEMINI_API_KEY" not in os.environ:
 from gemini_helper import GeminiChat
 chatbot = GeminiChat()
 
+from vector_helper import VectorStore
+vector_store = VectorStore()
+
 # Helper to convert plot to base64
 def get_base64_plot(fig):
     buf = io.BytesIO()
@@ -56,8 +59,9 @@ def contact():
 def analyze_instagram():
     username = request.form.get('username')
     
-    # Unpack 4 values now
-    profile_data, posts_df, stats, is_demo = instagram_scraper.fetch_profile_data(username)
+    # Unpack 4 values: profile_data, posts_df, stats, data_source
+    # data_source: "live" | "cached" | "partial" | "demo"
+    profile_data, posts_df, stats, data_source = instagram_scraper.fetch_profile_data(username)
     
     if not profile_data:
         flash("Error fetching profile. It might be private or rate limited.", "error")
@@ -73,13 +77,13 @@ def analyze_instagram():
         daily_counts, weekly_counts, monthly_counts = instagram_scraper.get_activity_charts_data(posts_df)
         
         # Plot Daily
-        fig, ax = plt.subplots(figsize=(5, 2.5)) # Reduced size
+        fig, ax = plt.subplots(figsize=(5, 2.5))
         ax.plot(daily_counts['timestamp'], daily_counts['count'], color='#fd7e14', linewidth=3)
         ax.axis('on')
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
-        ax.spines['left'].set_visible(False) # Clean left spine too
-        ax.tick_params(left=False) # Hide left ticks
+        ax.spines['left'].set_visible(False)
+        ax.tick_params(left=False)
         plt.tight_layout()
         graphs['daily_chart'] = get_base64_plot(fig)
         
@@ -115,7 +119,7 @@ def analyze_instagram():
                            activity=activity_metrics,
                            graphs=graphs,
                            top_content=top_content,
-                           is_demo=is_demo)
+                           data_source=data_source)
 
 # WhatsApp Logic
 # For simplicity in this demo, we will process the file on every request or use a simple caching mechanism 
@@ -174,6 +178,13 @@ def analyze_whatsapp():
         
         session['user_list'] = user_list
         
+        # Index into ChromaDB for semantic search
+        try:
+            # Use filename as collection name (sanitized inside VectorStore)
+            vector_store.index_chat(df, file.filename)
+        except Exception as e:
+            print(f"❌ Indexing Error: {e}")
+
         # Default to Overall
         return render_whatsapp_result("Overall", df, user_list)
 
@@ -205,8 +216,6 @@ def whatsapp_result_update():
                 'message': row['message']
             })
     
-    return render_whatsapp_result(selected_user, df, user_list, search_results)
-
     return render_whatsapp_result(selected_user, df, user_list, search_results)
 
 import smtplib
@@ -391,54 +400,72 @@ def render_whatsapp_result(selected_user, df, user_list, search_results=None, do
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
-    data = request.json
+    data = request.json or {}
     user_message = data.get('message')
     frontend_context = data.get('context', "")
-    
+    selected_user = (data.get('selected_user') or "Overall").strip() or "Overall"
+
     backend_context = ""
-    
-    # RAG-lite for WhatsApp: Search session file
+
     filepath = session.get('filepath')
     if filepath and os.path.exists(filepath):
         try:
-            # Re-read DF (should cache this ideally, but file read is fast enough for local)
+            filename = os.path.basename(filepath)
+            semantic_context = vector_store.search_chat(
+                user_message, filename, user_filter=selected_user
+            )
+
             with open(filepath, 'r', encoding='utf-8') as f:
                 content = f.read()
             df = preprocessor.preprocess(content)
-            
-            # RAG Logic
-            keywords = [w for w in user_message.split() if len(w) > 2] # lowered specificty
-            
-            found_msgs = []
-            
-            # 1. Search by Keyword
-            if keywords:
-                query = '|'.join(keywords)
-                # Filter by message content
-                results = df[df['message'].str.contains(query, case=False, na=False)].tail(50) # Get last 50 matches (more relevant)
-                
-                if not results.empty:
-                    found_msgs.append("--- Search Results ---")
-                    for _, row in results.iterrows():
-                        # Include Time!
-                        found_msgs.append(f"[{row['date'].strftime('%Y-%m-%d %H:%M')}] {row['user']}: {row['message']}")
-            
-            # 2. Add Recent Context (Last 15 messages) regardless of search
-            # This helps with questions like "who sent the last message?"
-            recent = df.tail(15)
-            found_msgs.append("\n--- Recent Chat Window ---")
+
+            toxicity_rows = helper.analyze_toxicity(selected_user, df)
+            if toxicity_rows:
+                tox_lines = [
+                    "--- Toxicity / abuse analysis (same heuristic as the Abuse Record table; higher score = more flagged words) ---",
+                ]
+                for i, row in enumerate(toxicity_rows[:20], start=1):
+                    tox_lines.append(
+                        f"{i}. User: {row['user']} | score: {row['score']}/10 | flagged word count: {row['count']}"
+                    )
+                tox_lines.append(
+                    "For 'who is most toxic', the top row (#1) is the highest score in this scope unless scores tie."
+                )
+                toxicity_block = "\n".join(tox_lines)
+            else:
+                toxicity_block = (
+                    "--- Toxicity / abuse analysis: No matches from the project's bad-word list for this dashboard scope. "
+                    "That does not prove the chat is 'clean'—only that nothing triggered the list. ---"
+                )
+
+            if selected_user != "Overall":
+                df_scope = df[df['user'] == selected_user]
+            else:
+                df_scope = df
+            recent = df_scope.tail(18) if len(df_scope) else df.tail(18)
+            recent_msgs = [
+                f"\n--- Recent messages (scope: {selected_user}) ---",
+            ]
             for _, row in recent.iterrows():
-                 found_msgs.append(f"[{row['date'].strftime('%Y-%m-%d %H:%M')}] {row['user']}: {row['message']}")
-            
-            backend_context = "\n".join(found_msgs)
-            
-            # Add general stats context if query asks for it?
-            # frontend_context usually covers stats.
-            
+                recent_msgs.append(
+                    f"[{row['date'].strftime('%Y-%m-%d %H:%M')}] {row['user']}: {row['message']}"
+                )
+
+            backend_context = (
+                toxicity_block
+                + "\n\n"
+                + f"--- Retrieved lines (Chroma semantic search) ---\n{semantic_context}\n"
+                + "\n".join(recent_msgs)
+            )
+
         except Exception as e:
             print(f"Chat Context Error: {e}")
-            
-    full_context = f"Frontend Stats: {frontend_context}\n\nBackend Data: {backend_context}"
+
+    full_context = (
+        f"Dashboard scope: {selected_user}\n"
+        f"Frontend summary: {frontend_context}\n\n"
+        f"{backend_context}"
+    )
     
     response = chatbot.get_response(user_message, full_context)
     return {"response": response}
