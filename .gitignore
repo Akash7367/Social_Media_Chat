@@ -5,3 +5,7 @@ __pycache__/
 .venv/
 .DS_Store
 *.pyc
+chroma_db/
+*.db
+*.sqlite
+*.sqlite3

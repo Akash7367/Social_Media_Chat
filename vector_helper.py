@@ -7,10 +7,21 @@ import re
 class VectorStore:
     def __init__(self, api_key=None):
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
+        self.client = None
+        self.ef = None
         
-        # Initialize ChromaDB persistent client
-        # This saves the database to the 'chroma_db' folder in the project directory
-        self.client = chromadb.PersistentClient(path="chroma_db")
+        try:
+            # Ensure chroma_db directory exists
+            os.makedirs("chroma_db", exist_ok=True)
+            
+            # Initialize ChromaDB persistent client
+            # This saves the database to the 'chroma_db' folder in the project directory
+            self.client = chromadb.PersistentClient(path="chroma_db")
+            print("✅ ChromaDB: Persistent client initialized at chroma_db/")
+        except Exception as e:
+            print(f"❌ ChromaDB: Failed to initialize persistent client: {e}")
+            print("⚠️ Vector search will be disabled.")
+            return
         
         # Setup Google Gemini Embedding Function
         if self.api_key:
@@ -25,7 +36,6 @@ class VectorStore:
                 self.ef = None
         else:
             print("⚠️ ChromaDB: GEMINI_API_KEY missing. Vector search will not work.")
-            self.ef = None
 
     def _sanitize_name(self, name):
         """Sanitize collection name for ChromaDB requirements."""

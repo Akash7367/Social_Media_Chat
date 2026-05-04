@@ -24,11 +24,18 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # API Key is loaded from .env automatically by load_dotenv()
 if "GEMINI_API_KEY" not in os.environ:
     print("WARNING: GEMINI_API_KEY not found in environment variables.")
+    print("         Vector search (semantic chat search) will be disabled.")
+    
 from gemini_helper import GeminiChat
 chatbot = GeminiChat()
 
 from vector_helper import VectorStore
-vector_store = VectorStore()
+try:
+    vector_store = VectorStore()
+except Exception as e:
+    print(f"⚠️ WARNING: Failed to initialize VectorStore: {e}")
+    print("          The app will work, but semantic chat search will be disabled.")
+    vector_store = None
 
 # Helper to convert plot to base64
 def get_base64_plot(fig):
@@ -178,12 +185,16 @@ def analyze_whatsapp():
         
         session['user_list'] = user_list
         
-        # Index into ChromaDB for semantic search
-        try:
-            # Use filename as collection name (sanitized inside VectorStore)
-            vector_store.index_chat(df, file.filename)
-        except Exception as e:
-            print(f"❌ Indexing Error: {e}")
+        # Index into ChromaDB for semantic search (optional feature)
+        if vector_store:
+            try:
+                # Use filename as collection name (sanitized inside VectorStore)
+                vector_store.index_chat(df, file.filename)
+            except Exception as e:
+                print(f"❌ Indexing Error: {e}")
+                print("   Chat analysis will still work; semantic search will be unavailable.")
+        else:
+            print("⚠️ VectorStore not available; semantic search skipped.")
 
         # Default to Overall
         return render_whatsapp_result("Overall", df, user_list)
