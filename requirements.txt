@@ -20,5 +20,4 @@ gunicorn
 # Added for voice assistant and vector search capabilities
 SpeechRecognition
 pyttsx3
-PyAudio
 chromadb
