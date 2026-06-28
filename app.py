@@ -33,8 +33,8 @@ if "GEMINI_API_KEY" not in os.environ:
 from gemini_helper import GeminiChat
 chatbot = GeminiChat()
 
-from vector_helper import VectorStore
 try:
+    from vector_helper import VectorStore
     vector_store = VectorStore()
 except Exception as e:
     print(f"⚠️ WARNING: Failed to initialize VectorStore: {e}")

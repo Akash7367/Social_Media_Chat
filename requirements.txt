@@ -20,6 +20,6 @@ gunicorn
 # Added for voice assistant and vector search capabilities
 SpeechRecognition
 pyttsx3
-chromadb
+# chromadb (Disabled for fast Render deployments / RAM limits)
 flask-cors
 
