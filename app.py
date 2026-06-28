@@ -16,7 +16,7 @@ import io
 import base64
 import uuid
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='frontend', static_url_path='')
 CORS(app, resources={r"/*": {"origins": "*"}}) # Enable Cross-Origin Resource Sharing
 
 # Use a separate SECRET_KEY for production to persist sessions
@@ -61,19 +61,30 @@ def get_base64_plot(fig):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return app.send_static_file('index.html')
 
 @app.route('/whatsapp')
+@app.route('/whatsapp.html')
 def whatsapp():
-    return render_template('whatsapp.html')
+    return app.send_static_file('whatsapp.html')
+
+@app.route('/whatsapp_result.html')
+def whatsapp_result():
+    return app.send_static_file('whatsapp_result.html')
 
 @app.route('/instagram')
+@app.route('/instagram.html')
 def instagram():
-    return render_template('instagram.html')
+    return app.send_static_file('instagram.html')
+
+@app.route('/instagram_result.html')
+def instagram_result():
+    return app.send_static_file('instagram_result.html')
 
 @app.route('/contact')
+@app.route('/contact.html')
 def contact():
-    return render_template('contact.html')
+    return app.send_static_file('contact.html')
 
 @app.route('/analyze/instagram', methods=['POST'])
 def analyze_instagram():

@@ -1,7 +1,5 @@
 // Global Configuration
-const BACKEND_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-    ? 'http://127.0.0.1:5050' 
-    : 'https://whatsapp-chat-analyser.onrender.com'; // Replace with your actual Render API URL
+const BACKEND_URL = window.location.origin;
 
 
 // Mobile Navbar Hamburger Toggle
