@@ -216,9 +216,22 @@ def analyze_whatsapp():
             except:
                 pass
             return jsonify({"error": "This is not a WhatsApp chat. Please upload only WhatsApp chat!"}), 400
-
-        # Initial Processing to get user list
         df = preprocessor.preprocess(data)
+        
+        # Pre-calculate sentiment analysis on upload so it is cached in the DataFrame
+        try:
+            _, df = helper.sentiment_analysis("Overall", df)
+        except Exception as e:
+            print(f"⚠️ Warning: Pre-calculating sentiment failed: {e}")
+            
+        # Save DataFrame as a pickle for extremely fast loading on subsequent requests
+        pkl_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{file_id}.pkl")
+        try:
+            df.to_pickle(pkl_path)
+            print(f"✅ DataFrame cached successfully as pickle: {pkl_path}")
+        except Exception as e:
+            print(f"❌ Failed to save DataFrame pickle: {e}")
+
         user_list = df['user'].unique().tolist()
         if 'group_notification' in user_list:
              user_list.remove('group_notification')
@@ -239,7 +252,7 @@ def analyze_whatsapp():
             print("🚀 Started ChromaDB indexing in a background thread.")
         else:
             print("⚠️ VectorStore not available; semantic search skipped.")
-
+ 
         # Default to Overall
         res = render_whatsapp_result("Overall", df, user_list)
         res["file_id"] = file_id
@@ -260,13 +273,26 @@ def whatsapp_result_update():
     if not file_id:
         return jsonify({"error": "file_id is required"}), 400
         
+    pkl_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{file_id}.pkl")
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"{file_id}.txt")
-    if not os.path.exists(filepath):
-        return jsonify({"error": "Session expired or file not found. Please upload file again."}), 404
-        
-    with open(filepath, 'r', encoding='utf-8') as f:
-        data = f.read()
-    df = preprocessor.preprocess(data)
+    
+    if os.path.exists(pkl_path):
+        try:
+            df = pd.read_pickle(pkl_path)
+            print(f"✅ Loaded DataFrame from cache pickle: {pkl_path}")
+        except Exception as e:
+            print(f"⚠️ Warning: Failed to load pickle: {e}. Falling back to txt preprocessing.")
+            if not os.path.exists(filepath):
+                return jsonify({"error": "Session expired or file not found. Please upload file again."}), 404
+            with open(filepath, 'r', encoding='utf-8') as f:
+                data = f.read()
+            df = preprocessor.preprocess(data)
+    else:
+        if not os.path.exists(filepath):
+            return jsonify({"error": "Session expired or file not found. Please upload file again."}), 404
+        with open(filepath, 'r', encoding='utf-8') as f:
+            data = f.read()
+        df = preprocessor.preprocess(data)
     
     # Calculate user list on-the-fly
     user_list = df['user'].unique().tolist()
@@ -356,15 +382,26 @@ def download_report():
     if not file_id:
         return "file_id is required", 400
         
+    pkl_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{file_id}.pkl")
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"{file_id}.txt")
-    if not os.path.exists(filepath):
-        return "Session expired or file not found. Please upload file again.", 404
-        
-    with open(filepath, 'r', encoding='utf-8') as f:
-        data = f.read()
     
-    # Re-process data
-    df = preprocessor.preprocess(data)
+    if os.path.exists(pkl_path):
+        try:
+            df = pd.read_pickle(pkl_path)
+            print(f"✅ Loaded DataFrame from cache pickle for download: {pkl_path}")
+        except Exception as e:
+            print(f"⚠️ Warning: Failed to load pickle for download: {e}. Falling back to txt preprocessing.")
+            if not os.path.exists(filepath):
+                return "Session expired or file not found. Please upload file again.", 404
+            with open(filepath, 'r', encoding='utf-8') as f:
+                data = f.read()
+            df = preprocessor.preprocess(data)
+    else:
+        if not os.path.exists(filepath):
+            return "Session expired or file not found. Please upload file again.", 404
+        with open(filepath, 'r', encoding='utf-8') as f:
+            data = f.read()
+        df = preprocessor.preprocess(data)
     
     # Calculate user list on-the-fly
     user_list = df['user'].unique().tolist()

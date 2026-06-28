@@ -138,21 +138,21 @@ def sentiment_analysis(selected_user, df):
     if selected_user != 'Overall':
         df = df[df['user'] == selected_user]
 
-    analyzer = SentimentIntensityAnalyzer()
-    
-    # Analyze message sentiment
-    df['sentiment'] = df['message'].apply(lambda x: analyzer.polarity_scores(x)['compound'])
-    
-    # Categorize
-    def get_analysis(score):
-        if score >= 0.05:
-            return 'Positive'
-        elif score <= -0.05:
-            return 'Negative'
-        else:
-            return 'Neutral'
-            
-    df['sentiment_category'] = df['sentiment'].apply(get_analysis)
+    # Only calculate sentiment if it hasn't been pre-calculated
+    if 'sentiment' not in df.columns or 'sentiment_category' not in df.columns:
+        analyzer = SentimentIntensityAnalyzer()
+        df['sentiment'] = df['message'].apply(lambda x: str(x) if pd.isna(x) else x)
+        df['sentiment'] = df['sentiment'].apply(lambda x: analyzer.polarity_scores(x)['compound'])
+        
+        def get_analysis(score):
+            if score >= 0.05:
+                return 'Positive'
+            elif score <= -0.05:
+                return 'Negative'
+            else:
+                return 'Neutral'
+                
+        df['sentiment_category'] = df['sentiment'].apply(get_analysis)
     
     sentiment_counts = df['sentiment_category'].value_counts().reset_index()
     sentiment_counts.columns = ['category', 'count']
