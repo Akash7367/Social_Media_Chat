@@ -26,8 +26,8 @@ class VectorStore:
         # Setup Google Gemini Embedding Function
         if self.api_key:
             try:
+                os.environ["GEMINI_API_KEY"] = self.api_key
                 self.ef = embedding_functions.GoogleGeminiEmbeddingFunction(
-                    api_key=self.api_key,
                     model_name="models/embedding-001"
                 )
                 print("✅ ChromaDB: Google Gemini Embedding Function initialized.")
