@@ -205,14 +205,18 @@ def analyze_whatsapp():
         user_list.sort()
         user_list.insert(0, "Overall")
         
-        # Index into ChromaDB for semantic search (optional feature)
+        # Index into ChromaDB for semantic search in a background thread to avoid blocking the user response
         if vector_store:
-            try:
-                # Use file_id as collection name
-                vector_store.index_chat(df, filename)
-            except Exception as e:
-                print(f"❌ Indexing Error: {e}")
-                print("   Chat analysis will still work; semantic search will be unavailable.")
+            import threading
+            def run_background_indexing(df_copy, fn):
+                try:
+                    vector_store.index_chat(df_copy, fn)
+                except Exception as e:
+                    print(f"❌ Background Indexing Error: {e}")
+            
+            thread = threading.Thread(target=run_background_indexing, args=(df.copy(), filename))
+            thread.start()
+            print("🚀 Started ChromaDB indexing in a background thread.")
         else:
             print("⚠️ VectorStore not available; semantic search skipped.")
 
