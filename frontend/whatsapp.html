@@ -58,7 +58,7 @@
                         <p style="color: #777; font-size: 0.85rem;">Note: If this is the first request, the Render server may take up to 1 minute to wake up. Thank you for waiting!</p>
                     </div>
                 </div>
-
+ 
                 <!-- Tutorial Guide -->
                 <div class="card" style="padding: 1rem;">
                     <h4 style="text-align: center; color: #555; margin-bottom: 0.8rem; font-size: 0.95rem; margin-top:0;">
@@ -84,19 +84,25 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Right: Video Player -->
+ 
+            <!-- Right: Play Mini-Game -->
             <div style="flex: 0 0 350px; display: flex; flex-direction: column;">
-                <div class="card" style="padding: 0; overflow: hidden; height: 100%; display: flex; flex-direction: column;">
-                    <h5 style="text-align: center; padding: 12px; margin: 0; background: #f8f9fa; border-bottom: 1px solid #eee; color: #666; font-size: 0.95rem;">
-                        How to Export?
-                    </h5>
-                    <div style="flex: 1; background: black; display: flex; align-items: center; justify-content: center;">
-                        <video width="100%" style="max-height: 100%; display: block;" controls muted>
-                            <!-- Note: Link directly to backend server to fetch video asset -->
-                            <source id="video-source" src="" type="video/mp4">
-                            Your browser does not support the video tag.
-                        </video>
+                <div class="card" style="padding: 1.5rem; overflow: hidden; height: 100%; display: flex; flex-direction: column; justify-content: space-between; min-height: 380px;">
+                    <div style="text-align: center;">
+                        <h3 style="color: #25d366; margin-top: 0; margin-bottom: 0.5rem;"><i class="fas fa-gamepad"></i> Chat Pop Challenge</h3>
+                        <p style="color: #718096; font-size: 0.85rem; margin-bottom: 1rem; margin-top: 0;">Pop the rising green chat bubbles! Don't let them escape.</p>
+                        
+                        <div style="display: flex; justify-content: space-around; background: #f0fdf4; padding: 10px; border-radius: 8px; margin-bottom: 1rem; border: 1px dashed #25d366;">
+                            <div style="font-size: 0.85rem; color: #555;">Score: <span id="game-score" style="font-weight: bold; color: #25d366; font-size: 1.1rem;">0</span></div>
+                            <div style="font-size: 0.85rem; color: #555;">High: <span id="game-highscore" style="font-weight: bold; color: #234e52; font-size: 1.1rem;">0</span></div>
+                            <div style="font-size: 0.85rem; color: #555;">Lives: <span id="game-lives" style="font-weight: bold; color: #e53e3e; font-size: 1.1rem;">3</span></div>
+                        </div>
+                    </div>
+                    
+                    <div id="game-area" style="position: relative; flex: 1; min-height: 250px; background: #ffffff; border: 2px solid #c6f6d5; border-radius: 12px; overflow: hidden; cursor: crosshair; display: flex; align-items: center; justify-content: center; user-select: none;">
+                        <div id="game-start-screen" style="text-align: center; padding: 10px;">
+                            <button type="button" id="start-game-btn" class="btn" style="background: #25d366; color: white; border: none; padding: 10px 24px; border-radius: 20px; cursor: pointer; font-weight: bold; font-family: inherit; font-size: 1rem; box-shadow: 0 4px 6px rgba(37,211,102,0.2);">Play Game</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -129,8 +135,8 @@
 
     <script src="js/main.js"></script>
     <script>
-        // Set video src dynamic link to Render backend
-        document.getElementById('video-source').src = `${BACKEND_URL}/static/videos/videoplayback.mp4`;
+        // Set video src directly to the video element to fix HTML5 loading bug
+        document.getElementById('export-video').src = `${BACKEND_URL}/static/videos/videoplayback.mp4`;
 
         const uploadZone = document.getElementById('upload-zone');
         const fileInput = document.getElementById('file');
@@ -182,6 +188,138 @@
             }
         }
 
+        // Mini Game Logic
+        let bubbleInterval = null;
+        let score = 0;
+        let lives = 3;
+        let highscore = parseInt(localStorage.getItem('whatsapp_bubble_highscore') || '0', 10);
+        
+        document.getElementById('game-highscore').innerText = highscore;
+
+        function startMiniGame() {
+            resetGame();
+        }
+
+        function stopMiniGame() {
+            clearInterval(bubbleInterval);
+            const gameArea = document.getElementById('game-area');
+            if (gameArea) {
+                gameArea.innerHTML = `
+                    <div id="game-start-screen" style="text-align: center; padding: 10px;">
+                        <button type="button" id="start-game-btn" class="btn" style="background: #25d366; color: white; border: none; padding: 10px 24px; border-radius: 20px; cursor: pointer; font-weight: bold; font-family: inherit; font-size: 1rem; box-shadow: 0 4px 6px rgba(37,211,102,0.2);">Play Game</button>
+                    </div>
+                `;
+                document.getElementById('start-game-btn').addEventListener('click', resetGame);
+            }
+        }
+
+        function resetGame() {
+            score = 0;
+            lives = 3;
+            document.getElementById('game-score').innerText = score;
+            document.getElementById('game-lives').innerText = lives;
+            const gameArea = document.getElementById('game-area');
+            gameArea.innerHTML = '';
+            
+            clearInterval(bubbleInterval);
+            bubbleInterval = setInterval(spawnBubble, 1000);
+            spawnBubble();
+        }
+
+        function spawnBubble() {
+            const gameArea = document.getElementById('game-area');
+            if (!gameArea || lives <= 0) {
+                clearInterval(bubbleInterval);
+                return;
+            }
+
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble-element';
+            
+            const size = Math.floor(Math.random() * 25) + 35; // 35px to 60px
+            const startX = Math.random() * (gameArea.clientWidth - size - 10) + 5;
+            
+            bubble.style.cssText = `
+                position: absolute;
+                bottom: -70px;
+                left: ${startX}px;
+                width: ${size}px;
+                height: ${size}px;
+                background-color: #25d366;
+                border-radius: 50% 50% 50% 5px;
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: ${size * 0.45}px;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+                transition: transform 0.1s ease;
+                cursor: pointer;
+                z-index: 5;
+            `;
+            bubble.innerHTML = '💬';
+
+            let bottom = -70;
+            const speed = Math.random() * 1.5 + 1.2;
+            
+            const floatAnim = setInterval(() => {
+                bottom += speed;
+                bubble.style.bottom = `${bottom}px`;
+
+                if (bottom > gameArea.clientHeight) {
+                    clearInterval(floatAnim);
+                    if (bubble.parentElement) {
+                        bubble.remove();
+                        lives--;
+                        document.getElementById('game-lives').innerText = lives;
+                        if (lives <= 0) {
+                            gameOver();
+                        }
+                    }
+                }
+            }, 20);
+
+            const handlePop = (e) => {
+                e.stopPropagation();
+                clearInterval(floatAnim);
+                bubble.style.transform = 'scale(1.4)';
+                bubble.style.opacity = '0';
+                bubble.style.backgroundColor = '#128c7e';
+                
+                setTimeout(() => {
+                    if (bubble.parentElement) bubble.remove();
+                }, 100);
+
+                score++;
+                document.getElementById('game-score').innerText = score;
+                if (score > highscore) {
+                    highscore = score;
+                    localStorage.setItem('whatsapp_bubble_highscore', highscore);
+                    document.getElementById('game-highscore').innerText = highscore;
+                }
+            };
+
+            bubble.addEventListener('mousedown', handlePop);
+            bubble.addEventListener('touchstart', handlePop, { passive: true });
+
+            gameArea.appendChild(bubble);
+        }
+
+        function gameOver() {
+            clearInterval(bubbleInterval);
+            const gameArea = document.getElementById('game-area');
+            gameArea.innerHTML = `
+                <div style="text-align: center; z-index: 10;">
+                    <p style="font-weight: bold; color: #e53e3e; margin: 0 0 5px 0; font-size: 1.1rem;">Game Over!</p>
+                    <p style="font-size: 0.85rem; color: #718096; margin: 0 0 10px 0;">Final Score: <strong>${score}</strong></p>
+                    <button type="button" id="restart-game-btn" class="btn" style="background: #25d366; color: white; border: none; padding: 6px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; font-family: inherit; font-size: 0.85rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Play Again</button>
+                </div>
+            `;
+            document.getElementById('restart-game-btn').addEventListener('click', resetGame);
+        }
+
+        document.getElementById('start-game-btn').addEventListener('click', resetGame);
+
         document.getElementById('whatsapp-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const alertBox = document.getElementById('alert-box');
@@ -197,6 +335,9 @@
             loader.style.display = 'block';
             submitBtn.style.display = 'none';
             uploadZone.style.pointerEvents = 'none';
+            
+            // Start the loading mini-game
+            startMiniGame();
 
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
@@ -204,7 +345,7 @@
             try {
                 const response = await fetch(`${BACKEND_URL}/analyze/whatsapp`, {
                     method: 'POST',
-                    body: formData // No headers needed, browser auto sets boundary
+                    body: formData
                 });
                 const data = await response.json();
 
@@ -214,6 +355,7 @@
                     sessionStorage.setItem('whatsapp_selected_user', 'Overall');
                     window.location.href = 'whatsapp_result.html';
                 } else {
+                    stopMiniGame();
                     loader.style.display = 'none';
                     submitBtn.style.display = 'block';
                     uploadZone.style.pointerEvents = 'auto';
@@ -224,6 +366,7 @@
                     alertBox.style.display = 'block';
                 }
             } catch (err) {
+                stopMiniGame();
                 loader.style.display = 'none';
                 submitBtn.style.display = 'block';
                 uploadZone.style.pointerEvents = 'auto';

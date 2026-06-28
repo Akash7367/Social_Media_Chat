@@ -92,16 +92,20 @@ def preprocess(data):
     msgs = []
     
     for message in df['user_message']:
-        # Split user and message
-        # Regex to find "User: " at start of message
-        entry = re.split(r'([\w\W]+?):\s', message)
-        if len(entry) > 1:
-            users.append(entry[1])
-            msgs.append(" ".join(entry[2:]))
+        # Split user and message safely without catastrophic regex backtracking
+        first_colon = message.find(': ')
+        first_newline = message.find('\n')
+        
+        # WhatsApp usernames are on the first line and typically short (under 80 chars)
+        if first_colon != -1 and (first_newline == -1 or first_colon < first_newline) and first_colon < 80:
+            user_part = message[:first_colon]
+            msg_part = message[first_colon + 2:]
+            users.append(user_part)
+            msgs.append(msg_part)
         else:
             users.append('group_notification')
-            msgs.append(entry[0])
-
+            msgs.append(message)
+    
     df['user'] = users
     df['message'] = msgs
     df.drop(columns=['user_message', 'message_date'], inplace=True)

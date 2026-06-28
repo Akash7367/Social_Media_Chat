@@ -39,7 +39,19 @@
                 <div id="loader" style="display: none; text-align: center; margin-top: 2rem;">
                     <i class="fas fa-spinner fa-spin" style="font-size: 2.5rem; color: var(--accent-color);"></i>
                     <p style="margin-top: 1rem; font-weight: 600;">Fetching Instagram Profile Data...</p>
-                    <p style="color: #777; font-size: 0.85rem;">Note: If this is the first request, our free backend on Render may take up to 1 minute to spin up. Thank you for your patience!</p>
+                    <p style="color: #777; font-size: 0.85rem; margin-bottom: 1rem;">Note: If this is the first request, our free backend on Render may take up to 1 minute to spin up. Thank you for your patience!</p>
+                    
+                    <!-- Mini Game Container -->
+                    <div id="mini-game-container" style="border: 1px dashed #e1306c; border-radius: 12px; padding: 15px; background: #fff5f7; display: none; flex-direction: column; align-items: center; justify-content: center; margin-top: 15px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
+                        <div style="font-size: 0.95rem; font-weight: bold; color: #812242; margin-bottom: 8px;">🎮 Heart Pop Challenge (Play while you wait!)</div>
+                        <div style="font-size: 0.85rem; color: #555; margin-bottom: 8px;">Score: <span id="game-score" style="font-weight: bold; color: #e1306c; font-size: 1rem;">0</span> | High Score: <span id="game-highscore" style="font-weight: bold; color: #812242; font-size: 1rem;">0</span> | Lives: <span id="game-lives" style="font-weight: bold; color: #e53e3e;">3</span></div>
+                        <div id="game-area" style="position: relative; width: 100%; height: 220px; background: #ffffff; border: 2px solid #fed7e2; border-radius: 8px; overflow: hidden; cursor: crosshair; display: flex; align-items: center; justify-content: center; user-select: none;">
+                            <div id="game-start-screen" style="text-align: center;">
+                                <p style="font-size: 0.8rem; color: #718096; margin-bottom: 10px;">Pop the pink/red hearts before they disappear! Avoid missing them.</p>
+                                <button type="button" id="start-game-btn" class="btn" style="background: #e1306c; color: white; border: none; padding: 8px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; font-family: inherit; font-size: 0.9rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Start Game</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -75,6 +87,142 @@
 
     <script src="js/main.js"></script>
     <script>
+        // Mini Game Logic
+        let heartInterval = null;
+        let score = 0;
+        let lives = 3;
+        let highscore = parseInt(localStorage.getItem('instagram_heart_highscore') || '0', 10);
+        
+        document.getElementById('game-highscore').innerText = highscore;
+
+        function startMiniGame() {
+            document.getElementById('mini-game-container').style.display = 'flex';
+            resetGame();
+        }
+
+        function stopMiniGame() {
+            clearInterval(heartInterval);
+            const gameArea = document.getElementById('game-area');
+            if (gameArea) {
+                gameArea.innerHTML = `
+                    <div id="game-start-screen" style="text-align: center;">
+                        <p style="font-size: 0.8rem; color: #718096; margin-bottom: 10px;">Pop the pink/red hearts before they disappear! Avoid missing them.</p>
+                        <button type="button" id="start-game-btn" class="btn" style="background: #e1306c; color: white; border: none; padding: 8px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; font-family: inherit; font-size: 0.9rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Start Game</button>
+                    </div>
+                `;
+                document.getElementById('start-game-btn').addEventListener('click', resetGame);
+            }
+            document.getElementById('mini-game-container').style.display = 'none';
+        }
+
+        function resetGame() {
+            score = 0;
+            lives = 3;
+            document.getElementById('game-score').innerText = score;
+            document.getElementById('game-lives').innerText = lives;
+            const gameArea = document.getElementById('game-area');
+            gameArea.innerHTML = '';
+            
+            clearInterval(heartInterval);
+            heartInterval = setInterval(spawnHeart, 1000);
+            spawnHeart();
+        }
+
+        function spawnHeart() {
+            const gameArea = document.getElementById('game-area');
+            if (!gameArea || lives <= 0) {
+                clearInterval(heartInterval);
+                return;
+            }
+
+            const heart = document.createElement('div');
+            heart.className = 'heart-element';
+            
+            const size = Math.floor(Math.random() * 25) + 35; // 35px to 60px
+            const startX = Math.random() * (gameArea.clientWidth - size - 10) + 5;
+            
+            // Nice color mix of IG colors
+            const colors = ['#e1306c', '#fd1d1d', '#f56040', '#f77737', '#c13584'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            heart.style.cssText = `
+                position: absolute;
+                bottom: -70px;
+                left: ${startX}px;
+                width: ${size}px;
+                height: ${size}px;
+                color: ${randomColor};
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: ${size * 0.7}px;
+                transition: transform 0.1s ease;
+                cursor: pointer;
+                z-index: 5;
+                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+            `;
+            heart.innerHTML = '❤️';
+
+            let bottom = -70;
+            const speed = Math.random() * 1.5 + 1.2;
+            
+            const floatAnim = setInterval(() => {
+                bottom += speed;
+                heart.style.bottom = `${bottom}px`;
+
+                if (bottom > gameArea.clientHeight) {
+                    clearInterval(floatAnim);
+                    if (heart.parentElement) {
+                        heart.remove();
+                        lives--;
+                        document.getElementById('game-lives').innerText = lives;
+                        if (lives <= 0) {
+                            gameOver();
+                        }
+                    }
+                }
+            }, 20);
+
+            const handlePop = (e) => {
+                e.stopPropagation();
+                clearInterval(floatAnim);
+                heart.style.transform = 'scale(1.5)';
+                heart.style.opacity = '0';
+                
+                setTimeout(() => {
+                    if (heart.parentElement) heart.remove();
+                }, 100);
+
+                score++;
+                document.getElementById('game-score').innerText = score;
+                if (score > highscore) {
+                    highscore = score;
+                    localStorage.setItem('instagram_heart_highscore', highscore);
+                    document.getElementById('game-highscore').innerText = highscore;
+                }
+            };
+
+            heart.addEventListener('mousedown', handlePop);
+            heart.addEventListener('touchstart', handlePop, { passive: true });
+
+            gameArea.appendChild(heart);
+        }
+
+        function gameOver() {
+            clearInterval(heartInterval);
+            const gameArea = document.getElementById('game-area');
+            gameArea.innerHTML = `
+                <div style="text-align: center; z-index: 10;">
+                    <p style="font-weight: bold; color: #e53e3e; margin: 0 0 5px 0; font-size: 1.1rem;">Game Over!</p>
+                    <p style="font-size: 0.85rem; color: #718096; margin: 0 0 10px 0;">Final Score: <strong>${score}</strong></p>
+                    <button type="button" id="restart-game-btn" class="btn" style="background: #e1306c; color: white; border: none; padding: 6px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; font-family: inherit; font-size: 0.85rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Play Again</button>
+                </div>
+            `;
+            document.getElementById('restart-game-btn').addEventListener('click', resetGame);
+        }
+
+        document.getElementById('start-game-btn').addEventListener('click', resetGame);
+
         document.getElementById('insta-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const alertBox = document.getElementById('alert-box');
@@ -85,6 +233,9 @@
             alertBox.style.display = 'none';
             loader.style.display = 'block';
             submitBtn.disabled = true;
+
+            // Start loading game
+            startMiniGame();
 
             try {
                 const response = await fetch(`${BACKEND_URL}/analyze/instagram`, {
@@ -98,6 +249,7 @@
                     sessionStorage.setItem('instagram_analysis', JSON.stringify(data));
                     window.location.href = 'instagram_result.html';
                 } else {
+                    stopMiniGame();
                     loader.style.display = 'none';
                     submitBtn.disabled = false;
                     alertBox.style.background = '#fff5f5';
@@ -107,6 +259,7 @@
                     alertBox.style.display = 'block';
                 }
             } catch (err) {
+                stopMiniGame();
                 loader.style.display = 'none';
                 submitBtn.disabled = false;
                 alertBox.style.background = '#fff5f5';
