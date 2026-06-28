@@ -17,9 +17,18 @@ import base64
 import uuid
 
 app = Flask(__name__)
-CORS(app) # Enable Cross-Origin Resource Sharing
+CORS(app, resources={r"/*": {"origins": "*"}}) # Enable Cross-Origin Resource Sharing
+
 # Use a separate SECRET_KEY for production to persist sessions
 app.secret_key = os.environ.get("SECRET_KEY", "dev_secret_key_fallback")
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+    response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
+    return response
+
 app.config['UPLOAD_FOLDER'] = 'uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
