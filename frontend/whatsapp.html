@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Chat Analysis - SocialAnalyser</title>
+    <meta name="description" content="Upload WhatsApp chat exports (.txt) to visualize activity metrics, chat statistics, timelines, and toxicity scores.">
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="navbar-brand">📊 SocialAnalyser</a>
+        <button id="hamburger-btn" class="hamburger-menu" aria-label="Toggle menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="nav-links" id="nav-links">
+            <a href="index.html" class="btn nav-btn">Home</a>
+            <a href="contact.html" class="btn nav-btn">Contact</a>
+            <button id="theme-toggle" class="btn nav-btn" style="background:none; font-size: 1.2rem; cursor: pointer;">🌓</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div style="max-width: 1100px; margin: 0 auto; display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: center; align-items: stretch;">
+
+            <!-- Left: Upload Form & Guide -->
+            <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 1.5rem;">
+                <!-- Upload Form -->
+                <div class="card" style="flex: 1; padding: 2rem;">
+                    <h2 style="text-align: center; color: #25d366; margin-bottom: 1.5rem; font-size: 1.6rem;">
+                        WhatsApp Chat Analysis
+                    </h2>
+                    
+                    <div id="alert-box" style="display: none; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; font-weight: 600; text-align: center;"></div>
+
+                    <form id="whatsapp-form" enctype="multipart/form-data">
+                        <div class="upload-zone" id="upload-zone" style="border: 2px dashed #cbd5e0; padding: 2rem; border-radius: 12px; text-align: center; cursor: pointer; background: white; transition: all 0.3s ease;">
+                            <input type="file" id="file" name="file" accept=".txt" required style="display: none;">
+                            <div class="upload-content">
+                                <i class="fas fa-cloud-upload-alt upload-icon" id="upload-icon" style="font-size: 3rem; color: #a0aec0; margin-bottom: 1rem; transition: color 0.3s ease;"></i>
+                                <p class="upload-title" id="upload-title"><strong>Click to upload</strong> or drag file here</p>
+                                <p class="upload-subtitle" style="color: #718096; font-size: 0.85rem;">Supported Format: .txt</p>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="submit-btn" class="btn btn-secondary" style="width: 100%; padding: 0.8rem; font-size: 1rem; margin-top: 1.5rem; border-radius: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; background-color: #25d366; color: white; border: none; cursor: pointer; box-shadow: 0 4px 6px rgba(37, 211, 102, 0.2);">
+                            <i class="fas fa-rocket" style="margin-right: 8px;"></i> Analyze Chat
+                        </button>
+                    </form>
+
+                    <div id="loader" style="display: none; text-align: center; margin-top: 2rem;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2.5rem; color: #25d366;"></i>
+                        <p style="margin-top: 1rem; font-weight: 600; color: #25d366;">Processing and indexing chat messages...</p>
+                        <p style="color: #777; font-size: 0.85rem;">Note: If this is the first request, the Render server may take up to 1 minute to wake up. Thank you for waiting!</p>
+                    </div>
+                </div>
+
+                <!-- Tutorial Guide -->
+                <div class="card" style="padding: 1rem;">
+                    <h4 style="text-align: center; color: #555; margin-bottom: 0.8rem; font-size: 0.95rem; margin-top:0;">
+                        <i class="fab fa-whatsapp" style="color: #25d366;"></i> Quick Guide
+                    </h4>
+                    <div class="steps-grid" style="display: flex; justify-content: center; gap: 1rem;">
+                        <div class="step-card" style="text-align: center; flex: 1;">
+                            <div class="step-icon" style="width: 35px; height: 35px; background: #e6fffa; color: #234e52; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.5rem;"><i class="fas fa-ellipsis-v"></i></div>
+                            <div class="step-text" style="font-size: 0.75rem; font-weight: 600;">Menu</div>
+                        </div>
+                        <div class="step-card" style="text-align: center; flex: 1;">
+                            <div class="step-icon" style="width: 35px; height: 35px; background: #e6fffa; color: #234e52; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.5rem;"><i class="fas fa-info-circle"></i></div>
+                            <div class="step-text" style="font-size: 0.75rem; font-weight: 600;">More</div>
+                        </div>
+                        <div class="step-card" style="text-align: center; flex: 1;">
+                            <div class="step-icon" style="width: 35px; height: 35px; background: #e6fffa; color: #234e52; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.5rem;"><i class="fas fa-file-export"></i></div>
+                            <div class="step-text" style="font-size: 0.75rem; font-weight: 600;">Export</div>
+                        </div>
+                        <div class="step-card" style="text-align: center; flex: 1;">
+                            <div class="step-icon" style="width: 35px; height: 35px; background: #e6fffa; color: #234e52; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.5rem;"><i class="fas fa-ban"></i></div>
+                            <div class="step-text" style="font-size: 0.75rem; font-weight: 600;">No Media</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Video Player -->
+            <div style="flex: 0 0 350px; display: flex; flex-direction: column;">
+                <div class="card" style="padding: 0; overflow: hidden; height: 100%; display: flex; flex-direction: column;">
+                    <h5 style="text-align: center; padding: 12px; margin: 0; background: #f8f9fa; border-bottom: 1px solid #eee; color: #666; font-size: 0.95rem;">
+                        How to Export?
+                    </h5>
+                    <div style="flex: 1; background: black; display: flex; align-items: center; justify-content: center;">
+                        <video width="100%" style="max-height: 100%; display: block;" controls muted>
+                            <!-- Note: Link directly to backend server to fetch video asset -->
+                            <source id="video-source" src="" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Widget -->
+    <div id="chat-widget" class="floating-chat-icon">
+        <div id="chat-button" class="chat-btn-circle">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+        </div>
+        <div id="chat-window" class="chat-window" style="display: none;">
+            <div class="chat-header">
+                <span>AI Assistant</span>
+                <span id="close-chat" style="cursor: pointer;">&times;</span>
+            </div>
+            <div id="chat-messages" class="chat-body">
+                <div class="chat-message bot-message">
+                    Hi! I can help analyze this profile. Ask me anything!
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Type a message..." class="chat-input-field">
+                <button id="send-btn" class="chat-send-btn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        // Set video src dynamic link to Render backend
+        document.getElementById('video-source').src = `${BACKEND_URL}/static/videos/videoplayback.mp4`;
+
+        const uploadZone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('file');
+        const uploadTitle = document.getElementById('upload-title');
+        const uploadIcon = document.getElementById('upload-icon');
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        // Drag & Drop
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.style.borderColor = '#25d366';
+        });
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.style.borderColor = '#cbd5e0';
+        });
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.style.borderColor = '#cbd5e0';
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileSelect();
+            }
+        });
+
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function handleFileSelect() {
+            if (fileInput.files && fileInput.files[0]) {
+                const fileName = fileInput.files[0].name;
+                const fileExt = fileName.split('.').pop().toLowerCase();
+
+                if (fileExt !== 'txt') {
+                    uploadTitle.innerHTML = `<strong>Error:</strong> Please upload .txt file only!`;
+                    uploadTitle.style.color = '#e53e3e';
+                    uploadIcon.className = 'fas fa-exclamation-triangle upload-icon';
+                    uploadIcon.style.color = '#e53e3e';
+                    uploadZone.style.borderColor = '#e53e3e';
+                    uploadZone.style.backgroundColor = '#fff5f5';
+                    fileInput.value = '';
+                } else {
+                    uploadTitle.innerHTML = `<strong>Selected:</strong> ${fileName}`;
+                    uploadTitle.style.color = '#25d366';
+                    uploadIcon.className = 'fas fa-check-circle upload-icon';
+                    uploadIcon.style.color = '#25d366';
+                    uploadZone.style.borderColor = '#25d366';
+                    uploadZone.style.backgroundColor = '#f0fdf4';
+                }
+            }
+        }
+
+        document.getElementById('whatsapp-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const alertBox = document.getElementById('alert-box');
+            const loader = document.getElementById('loader');
+            const submitBtn = document.getElementById('submit-btn');
+
+            if (!fileInput.files || !fileInput.files[0]) {
+                alert("Please select a file.");
+                return;
+            }
+
+            alertBox.style.display = 'none';
+            loader.style.display = 'block';
+            submitBtn.style.display = 'none';
+            uploadZone.style.pointerEvents = 'none';
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/analyze/whatsapp`, {
+                    method: 'POST',
+                    body: formData // No headers needed, browser auto sets boundary
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    sessionStorage.setItem('whatsapp_file_id', data.file_id);
+                    sessionStorage.setItem('whatsapp_analysis', JSON.stringify(data));
+                    sessionStorage.setItem('whatsapp_selected_user', 'Overall');
+                    window.location.href = 'whatsapp_result.html';
+                } else {
+                    loader.style.display = 'none';
+                    submitBtn.style.display = 'block';
+                    uploadZone.style.pointerEvents = 'auto';
+                    alertBox.style.background = '#fff5f5';
+                    alertBox.style.color = '#742a2a';
+                    alertBox.style.border = '1px solid #fed7d7';
+                    alertBox.innerText = data.error || "An error occurred uploading the chat.";
+                    alertBox.style.display = 'block';
+                }
+            } catch (err) {
+                loader.style.display = 'none';
+                submitBtn.style.display = 'block';
+                uploadZone.style.pointerEvents = 'auto';
+                alertBox.style.background = '#fff5f5';
+                alertBox.style.color = '#742a2a';
+                alertBox.style.border = '1px solid #fed7d7';
+                alertBox.innerText = "Error connecting to the analysis server. Please try again.";
+                alertBox.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

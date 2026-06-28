@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Chat Analysis Dashboard - SocialAnalyser</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        /* Force dark-mode variables and overrides for inline styles */
+        body.dark-mode {
+            background-color: #1a202c !important;
+            background-image: none !important;
+            color: #cbd5e0 !important;
+        }
+        body.dark-mode .dashboard-content {
+            background-color: #1a202c !important;
+        }
+        body.dark-mode .navbar {
+            background: #2d3748 !important;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2) !important;
+        }
+        body.dark-mode .dashboard-sidebar {
+            background: #2d3748 !important;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.2) !important;
+            border-color: #4a5568 !important;
+        }
+        body.dark-mode .dashboard-sidebar h3 {
+            color: #edf2f7 !important;
+            border-bottom-color: #4a5568 !important;
+        }
+        body.dark-mode .nav-item {
+            color: #cbd5e0 !important;
+        }
+        body.dark-mode .nav-item:hover, body.dark-mode .nav-item.active {
+            background: #234e52 !important;
+            color: #25d366 !important;
+        }
+        body.dark-mode .card,
+        body.dark-mode .stat-card,
+        body.dark-mode .ps-white-card,
+        body.dark-mode .qr-modal-content {
+            background: #2d3748 !important;
+            color: #edf2f7 !important;
+            border-color: #4a5568 !important;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2) !important;
+        }
+        body.dark-mode h1, 
+        body.dark-mode h2, 
+        body.dark-mode h3, 
+        body.dark-mode h4,
+        body.dark-mode h5,
+        body.dark-mode label {
+            color: #edf2f7 !important;
+        }
+        body.dark-mode .stat-card .label {
+            color: #cbd5e0 !important;
+        }
+        body.dark-mode .stat-card .value {
+            color: #ffffff !important;
+        }
+        body.dark-mode table thead tr {
+            border-bottom-color: #4a5568 !important;
+            color: #cbd5e0 !important;
+        }
+        body.dark-mode table tbody tr {
+            border-bottom-color: #4a5568 !important;
+            color: #e2e8f0 !important;
+        }
+        body.dark-mode #scope-selector,
+        body.dark-mode #search-input,
+        body.dark-mode #navbar-search-input {
+            background: #1a202c !important;
+            border-color: #4a5568 !important;
+            color: #ffffff !important;
+        }
+        body.dark-mode .msg-text-content {
+            color: #e2e8f0 !important;
+        }
+        body.dark-mode .view-details-link {
+            color: #38a169 !important;
+        }
+
+        /* Sidebar layout override */
+        .dashboard-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+        .dashboard-sidebar {
+            width: 260px;
+            background: white;
+            padding: 2rem 1.5rem;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 70px;
+            height: calc(100vh - 70px);
+            overflow-y: auto;
+        }
+        .dashboard-content {
+            flex: 1;
+            padding: 2rem;
+            background: #f7fafc;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            color: #4a5568;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .nav-item:hover, .nav-item.active {
+            background: #f0fdf4;
+            color: #25d366;
+        }
+        .mobile-menu-btn {
+            display: none;
+            background: #25d366;
+            color: white;
+            border: none;
+            padding: 10px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            align-items: center;
+            gap: 8px;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            border-radius: 50px;
+            box-shadow: var(--shadow-md);
+            z-index: 1000;
+        }
+        @media (max-width: 768px) {
+            .dashboard-layout {
+                flex-direction: column;
+            }
+            .dashboard-sidebar {
+                display: none; /* Toggle via mobile menu */
+                width: 100%;
+                position: fixed;
+                top: 70px;
+                left: 0;
+                height: calc(100vh - 70px);
+                z-index: 999;
+            }
+            .dashboard-sidebar.active {
+                display: block;
+            }
+            .mobile-menu-btn {
+                display: inline-flex;
+            }
+        }
+        /* QR Modal */
+        #qrModal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+        }
+        .qr-modal-content {
+            background-color: #fefefe;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            width: 340px;
+            position: relative;
+        }
+        .close-qr {
+            position: absolute;
+            right: 15px;
+            top: 5px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="navbar-brand">📊 SocialAnalyser</a>
+        
+        <!-- Navbar Search bar -->
+        <div class="navbar-search" style="display: flex; gap: 8px; max-width: 450px; width: 100%; margin: 0 1.5rem; align-items: center; justify-content: center; height: 38px;">
+            <input type="text" id="navbar-search-input" placeholder="Search chat messages..." style="width: 100%; padding: 0 15px; border: 1px solid #ddd; border-radius: 20px; font-family: inherit; font-size: 0.9rem; outline: none; box-sizing: border-box; height: 38px; margin: 0 !important; vertical-align: middle;">
+            <button id="btn-navbar-search" style="background: #25d366; color: white; border: none; padding: 0 18px; border-radius: 20px; font-weight: 600; cursor: pointer; font-size: 0.9rem; display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 38px; box-sizing: border-box; white-space: nowrap; margin: 0 !important; vertical-align: middle;"><i class="fas fa-search"></i> Search</button>
+        </div>
+
+        <button id="hamburger-btn" class="hamburger-menu" aria-label="Toggle menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="nav-links" id="nav-links">
+            <a href="index.html" class="btn nav-btn">Home</a>
+            <a href="contact.html" class="btn nav-btn">Contact</a>
+            <button id="theme-toggle" class="btn nav-btn" style="background:none; font-size: 1.2rem; cursor: pointer;">🌓</button>
+        </div>
+    </nav>
+
+    <div class="dashboard-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="dashboard-sidebar" id="dashboard-sidebar">
+            <h3 style="margin-top:0; margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid #eee;">Navigation</h3>
+            <nav style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <a href="#stats-overview" class="nav-item"><i class="fas fa-chart-line"></i> Stats Overview</a>
+                <a href="#graphs-section" class="nav-item"><i class="fas fa-chart-pie"></i> Activity Graphs</a>
+                <a href="#toxicity-section" class="nav-item"><i class="fas fa-exclamation-triangle"></i> Abuse Record</a>
+                <a href="#search-section" class="nav-item"><i class="fas fa-search"></i> Search Messages</a>
+                <hr style="margin: 10px 0; border: 0; border-top: 1px solid #eee;">
+                
+                <a onclick="showQRCode()" class="nav-item"><i class="fas fa-qrcode"></i> Generate QR Code</a>
+                <a id="btn-download" href="#" target="_blank" class="nav-item"><i class="fas fa-file-download"></i> Download Report</a>
+                <a href="contact.html" class="nav-item"><i class="fas fa-lightbulb"></i> Suggest Improvement</a>
+                <a href="whatsapp.html" class="nav-item" style="color: #dc3545;"><i class="fas fa-sync-alt" style="color: #dc3545;"></i> Analyze Another</a>
+            </nav>
+        </aside>
+
+        <!-- Mobile Menu Toggle Button -->
+        <button id="mobile-menu-toggle" class="mobile-menu-btn">
+            <i class="fas fa-bars"></i>
+            <span>Menu</span>
+        </button>
+
+        <!-- Main Content Area -->
+        <main class="dashboard-content">
+            <!-- Dropdown Scope Selector -->
+            <div class="card" style="padding: 1rem; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                <h2 style="margin:0; font-size: 1.4rem; color: #2d3748;">Active Scope Analysis</h2>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label for="scope-selector" style="font-weight: 600;">Show Analysis For:</label>
+                    <select id="scope-selector" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit; font-size: 1rem; cursor: pointer;"></select>
+                </div>
+            </div>
+
+            <!-- Dashboard Loader -->
+            <div id="dashboard-loader" style="display: none; text-align: center; margin: 3rem 0;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 3rem; color: #25d366;"></i>
+                <p style="margin-top: 1rem; font-weight: 600;">Updating dashboard data...</p>
+            </div>
+
+            <div id="dashboard-data-container">
+                <!-- Section 1: Stats Cards -->
+                <section id="stats-overview" style="margin-bottom: 3rem;">
+                    <h3 style="color: #2d3748; margin-bottom: 1.5rem;"><i class="fas fa-chart-line" style="color: #25d366; margin-right: 8px;"></i> Statistics Overview</h3>
+                    <div class="grid-cols-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                        <div class="stat-card" style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 5px solid #25d366;">
+                            <div class="label" style="color:#718096; font-size:0.9rem;">Total Messages</div>
+                            <div class="value" id="val-messages" style="font-size: 1.8rem; font-weight: 700; margin-top:0.5rem;">0</div>
+                        </div>
+                        <div class="stat-card" style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 5px solid #3182ce;">
+                            <div class="label" style="color:#718096; font-size:0.9rem;">Total Words</div>
+                            <div class="value" id="val-words" style="font-size: 1.8rem; font-weight: 700; margin-top:0.5rem;">0</div>
+                        </div>
+                        <div class="stat-card" style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 5px solid #e53e3e;">
+                            <div class="label" style="color:#718096; font-size:0.9rem;">Media Messages</div>
+                            <div class="value" id="val-media" style="font-size: 1.8rem; font-weight: 700; margin-top:0.5rem;">0</div>
+                        </div>
+                        <div class="stat-card" style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow-sm); border-left: 5px solid #d69e2e;">
+                            <div class="label" style="color:#718096; font-size:0.9rem;">Links Shared</div>
+                            <div class="value" id="val-links" style="font-size: 1.8rem; font-weight: 700; margin-top:0.5rem;">0</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section 2: Graphs -->
+                <section id="graphs-section" style="margin-bottom: 3rem;">
+                    <h3 style="color: #2d3748; margin-bottom: 1.5rem;"><i class="fas fa-chart-pie" style="color: #3182ce; margin-right: 8px;"></i> Activity Graphs</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem;">
+                        <div class="card" style="text-align: center; padding: 1.5rem;"><h4 style="margin-top:0;">Monthly Timeline</h4><img id="chart-monthly" style="width:100%;"></div>
+                        <div class="card" style="text-align: center; padding: 1.5rem;"><h4 style="margin-top:0;">Daily Timeline</h4><img id="chart-daily" style="width:100%;"></div>
+                        <div class="card" style="text-align: center; padding: 1.5rem;"><h4 style="margin-top:0;">Weekly Activity Map</h4><img id="chart-weekly-map" style="width:100%;"></div>
+                        <div class="card" style="text-align: center; padding: 1.5rem;"><h4 style="margin-top:0;">Monthly Activity Map</h4><img id="chart-monthly-map" style="width:100%;"></div>
+                        <div class="card" style="text-align: center; padding: 1.5rem;"><h4 style="margin-top:0;">Activity Heatmap</h4><img id="chart-heatmap" style="width:100%;"></div>
+                        <div class="card" id="card-busy-users" style="text-align: center; padding: 1.5rem;"><h4 style="margin-top:0;">Most Busy Users</h4><img id="chart-busy-users" style="width:100%;"></div>
+                        <div class="card" style="text-align: center; padding: 1.5rem;"><h4 style="margin-top:0;">Wordcloud</h4><img id="chart-wordcloud" style="width:100%;"></div>
+                        <div class="card" style="text-align: center; padding: 1.5rem;"><h4 style="margin-top:0;">Sentiment Analysis</h4><img id="chart-sentiment" style="width:100%;"></div>
+                    </div>
+                </section>
+
+                <!-- Section 3: Abuse/Toxicity Record -->
+                <section id="toxicity-section" style="margin-bottom: 3rem;">
+                    <h3 style="color: #2d3748; margin-bottom: 1.5rem;"><i class="fas fa-exclamation-triangle" style="color: #e53e3e; margin-right: 8px;"></i> Abuse & Toxicity Record</h3>
+                    <div class="card" style="padding: 1.5rem; overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid #edf2f7; color: #4a5568;">
+                                    <th style="padding: 12px 16px;">User</th>
+                                    <th style="padding: 12px 16px;">Flagged Msg Count</th>
+                                    <th style="padding: 12px 16px;">Heuristic Severity Score (Out of 10)</th>
+                                    <th style="padding: 12px 16px;">Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="toxicity-table-body">
+                                <!-- Populated Dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Search Results Modal -->
+    <div id="searchModal" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
+        <div class="qr-modal-content" style="width: 500px; max-width: 90%; max-height: 80vh; overflow-y: auto;">
+            <span class="close-qr" onclick="closeSearchModal()">&times;</span>
+            <h3 style="margin-bottom: 15px;"><i class="fas fa-search" style="color: #25d366; margin-right: 8px;"></i> Search Results</h3>
+            <div id="search-results-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 50vh; overflow-y: auto; text-align: left;">
+                <p style="color:#718096; text-align:center;">No results found.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Modal -->
+    <div id="qrModal">
+        <div class="qr-modal-content">
+            <span class="close-qr" onclick="closeQRModal()">&times;</span>
+            <h3>Scan QR Code</h3>
+            <div id="qrcode" style="display:flex; justify-content:center; margin: 20px 0;"></div>
+            <p style="font-size:0.85rem; color:#777;">Scan this code to view this analysis dashboard on your mobile device.</p>
+            <div class="link-group">
+                <input type="text" id="share-link" class="link-input" readonly>
+                <button onclick="copyShareLink()" class="copy-btn">Copy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Widget -->
+    <div id="chat-widget" class="floating-chat-icon">
+        <div id="chat-button" class="chat-btn-circle">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+        </div>
+        <div id="chat-window" class="chat-window" style="display: none;">
+            <div class="chat-header">
+                <span>AI Assistant</span>
+                <span id="close-chat" style="cursor: pointer;">&times;</span>
+            </div>
+            <div id="chat-messages" class="chat-body">
+                <div class="chat-message bot-message">
+                    Hi! I can help analyze this profile. Ask me anything!
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Type a message..." class="chat-input-field">
+                <button id="send-btn" class="chat-send-btn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        // Sidebar active link highlighting
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                navItems.forEach(n => n.classList.remove('active'));
+                item.classList.add('active');
+                // Close sidebar on mobile
+                document.getElementById('dashboard-sidebar').classList.remove('active');
+            });
+        });
+
+        // Mobile Menu Toggle
+        document.getElementById('mobile-menu-toggle').addEventListener('click', () => {
+            document.getElementById('dashboard-sidebar').classList.toggle('active');
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const rawData = sessionStorage.getItem('whatsapp_analysis');
+            if (!rawData) {
+                window.location.href = 'whatsapp.html';
+                return;
+            }
+
+            const data = JSON.parse(rawData);
+            renderDashboard(data, true); // initial render, populate select dropdown
+        });
+
+        function renderDashboard(data, isInitial = false) {
+            const { file_id, selected_user, users, stats, charts, toxicity } = data;
+
+            // Save state
+            sessionStorage.setItem('whatsapp_file_id', file_id);
+            sessionStorage.setItem('whatsapp_selected_user', selected_user);
+
+            // Set Download Report URL
+            document.getElementById('btn-download').href = `${BACKEND_URL}/download_report?file_id=${file_id}&selected_user=${selected_user}`;
+
+            // Populate Scope Dropdown Selector
+            if (isInitial && users) {
+                const selector = document.getElementById('scope-selector');
+                selector.innerHTML = '';
+                users.forEach(user => {
+                    const opt = document.createElement('option');
+                    opt.value = user;
+                    opt.innerText = user;
+                    if (user === selected_user) opt.selected = true;
+                    selector.appendChild(opt);
+                });
+
+                // Attach dropdown change event
+                selector.addEventListener('change', () => handleScopeChange(selector.value));
+            }
+
+            // Stats Cards
+            document.getElementById('val-messages').innerText = Number(stats.num_messages).toLocaleString();
+            document.getElementById('val-words').innerText = Number(stats.words).toLocaleString();
+            document.getElementById('val-media').innerText = Number(stats.num_media_messages).toLocaleString();
+            document.getElementById('val-links').innerText = Number(stats.num_links).toLocaleString();
+
+            // Charts
+            const setChart = (id, base64Str) => {
+                const el = document.getElementById(id);
+                if (base64Str) {
+                    el.src = 'data:image/png;base64,' + base64Str;
+                    el.style.display = 'block';
+                    el.closest('.card').style.display = 'block';
+                } else {
+                    el.style.display = 'none';
+                    el.closest('.card').style.display = 'none';
+                }
+            };
+
+            setChart('chart-monthly', charts.monthly_timeline);
+            setChart('chart-daily', charts.daily_timeline);
+            setChart('chart-weekly-map', charts.busy_day);
+            setChart('chart-monthly-map', charts.busy_month);
+            setChart('chart-heatmap', charts.heatmap);
+            setChart('chart-wordcloud', charts.wordcloud);
+            setChart('chart-sentiment', charts.sentiment);
+
+            // Busy Users (Visible only in "Overall" Scope)
+            if (selected_user === 'Overall' && charts.busy_users) {
+                setChart('chart-busy-users', charts.busy_users);
+                document.getElementById('card-busy-users').style.display = 'block';
+            } else {
+                document.getElementById('card-busy-users').style.display = 'none';
+            }
+
+            // Toxicity Table
+            const tBody = document.getElementById('toxicity-table-body');
+            tBody.innerHTML = '';
+            if (toxicity && toxicity.length) {
+                toxicity.forEach(row => {
+                    let detailsHTML = '';
+                    if (row.messages && row.messages.length) {
+                        detailsHTML = `
+                            <details>
+                                <summary class="view-details-link" style="color:#25d366; font-weight:600; cursor:pointer; text-decoration:underline;">View Details</summary>
+                                <div class="toxicity-details-box" style="margin-top: 10px; max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                        `;
+                        row.messages.forEach(msg => {
+                            detailsHTML += `
+                                <div class="toxicity-msg-item" style="border-left: 3px solid #dc3545; padding-left: 8px; font-size: 0.85rem; margin-bottom: 5px;">
+                                    <div style="color:#718096; font-size:0.75rem;">
+                                        <strong>Flagged Words:</strong> <span style="color:#dc3545; font-weight:600;">${escapeHTML(msg.words.join(', '))}</span>
+                                        &bull; ${escapeHTML(msg.date)}
+                                    </div>
+                                    <div style="margin-top:3px; color:#2d3748;" class="msg-text-content">${escapeHTML(msg.message)}</div>
+                                </div>
+                            `;
+                        });
+                        detailsHTML += `
+                                </div>
+                            </details>
+                        `;
+                    } else {
+                        detailsHTML = 'No details';
+                    }
+
+                    tBody.innerHTML += `
+                        <tr style="border-bottom: 1px solid #edf2f7; color: #4a5568;">
+                            <td style="padding: 12px 16px; font-weight:600; vertical-align: top;">${escapeHTML(row.user)}</td>
+                            <td style="padding: 12px 16px; vertical-align: top;">${row.count} words</td>
+                            <td style="padding: 12px 16px; vertical-align: top;"><span style="background: #fff5f5; color: #e53e3e; padding: 4px 10px; border-radius: 20px; font-weight:600; font-size: 0.85rem;">${row.score}/10</span></td>
+                            <td style="padding: 12px 16px; vertical-align: top;">${detailsHTML}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                tBody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 2rem; color: #718096;">No flagged words found in this scope!</td></tr>`;
+            }
+        }
+
+        async function handleScopeChange(selectedUser) {
+            const container = document.getElementById('dashboard-data-container');
+            const loader = document.getElementById('dashboard-loader');
+            const fileId = sessionStorage.getItem('whatsapp_file_id');
+
+            container.style.opacity = '0.3';
+            loader.style.display = 'block';
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/analyze/whatsapp_result`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ file_id: fileId, user: selectedUser })
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    renderDashboard(data, false);
+                } else {
+                    alert(data.error || "Failed to update analysis.");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Failed to connect to the backend server.");
+            } finally {
+                container.style.opacity = '1';
+                loader.style.display = 'none';
+            }
+        }
+
+        // Search Messages Logic (Triggered from Navbar)
+        const triggerSearch = async () => {
+            const query = document.getElementById('navbar-search-input').value.trim();
+            if (!query) return;
+
+            const modal = document.getElementById('searchModal');
+            const resultsContainer = document.getElementById('search-results-list');
+            
+            // Show modal and loading state
+            modal.style.display = 'flex';
+            resultsContainer.innerHTML = '<p style="text-align:center;"><i class="fas fa-spinner fa-spin"></i> Searching...</p>';
+
+            const fileId = sessionStorage.getItem('whatsapp_file_id');
+            const selectedUser = sessionStorage.getItem('whatsapp_selected_user') || 'Overall';
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/analyze/whatsapp_result`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ file_id: fileId, user: selectedUser, search_query: query })
+                });
+                const data = await response.json();
+
+                resultsContainer.innerHTML = '';
+                if (response.ok && data.search_results && data.search_results.length) {
+                    data.search_results.forEach(res => {
+                        resultsContainer.innerHTML += `
+                            <div style="background: white; border: 1px solid #edf2f7; padding: 1rem; border-radius: 8px; box-shadow: var(--shadow-sm); margin-bottom: 10px;">
+                                <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem; font-size:0.85rem; color:#718096;">
+                                    <strong>${escapeHTML(res.user)}</strong>
+                                    <span>${res.date}</span>
+                                </div>
+                                <p style="margin:0; font-size:0.95rem;" class="msg-text-content">${escapeHTML(res.message)}</p>
+                            </div>
+                        `;
+                    });
+                } else {
+                    resultsContainer.innerHTML = `<p style="text-align:center; color:#718096;">No messages matching "${escapeHTML(query)}" found.</p>`;
+                }
+            } catch (err) {
+                console.error(err);
+                resultsContainer.innerHTML = '<p style="text-align:center; color:#e53e3e;">Error communicating with search API.</p>';
+            }
+        };
+
+        function closeSearchModal() {
+            document.getElementById('searchModal').style.display = 'none';
+        }
+
+        document.getElementById('btn-navbar-search').addEventListener('click', triggerSearch);
+        document.getElementById('navbar-search-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') triggerSearch();
+        });
+
+
+        // QR Code Modal
+        function showQRCode() {
+            const modal = document.getElementById('qrModal');
+            const qrcodeContainer = document.getElementById('qrcode');
+            const shareLinkInput = document.getElementById('share-link');
+
+            qrcodeContainer.innerHTML = ''; // Clear previous
+            modal.style.display = 'flex';
+
+            const shareUrl = window.location.href;
+            shareLinkInput.value = shareUrl;
+
+            new QRCode(qrcodeContainer, {
+                text: shareUrl,
+                width: 180,
+                height: 180,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
+
+        function closeQRModal() {
+            document.getElementById('qrModal').style.display = 'none';
+        }
+
+        function copyShareLink() {
+            const copyText = document.getElementById('share-link');
+            copyText.select();
+            copyText.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(copyText.value);
+            alert("Share link copied to clipboard!");
+        }
+
+        window.onclick = function(event) {
+            const qrModal = document.getElementById('qrModal');
+            const searchModal = document.getElementById('searchModal');
+            if (event.target == qrModal) {
+                closeQRModal();
+            }
+            if (event.target == searchModal) {
+                closeSearchModal();
+            }
+        }
+    </script>
+</body>
+</html>

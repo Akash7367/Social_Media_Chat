@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Profile Analysis - SocialAnalyser</title>
+    <meta name="description" content="Fetch and analyze public Instagram profile details, timelines, top contents, and engagement metrics instantly.">
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="navbar-brand">📊 SocialAnalyser</a>
+        <button id="hamburger-btn" class="hamburger-menu" aria-label="Toggle menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="nav-links" id="nav-links">
+            <a href="index.html" class="btn nav-btn">Home</a>
+            <a href="contact.html" class="btn nav-btn">Contact</a>
+            <button id="theme-toggle" class="btn nav-btn" style="background:none; font-size: 1.2rem; cursor: pointer;">🌓</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div style="max-width: 600px; margin: 0 auto;">
+            <div class="card">
+                <h2 style="text-align: center; color: var(--accent-color);">Instagram Profile Analysis</h2>
+                <div id="alert-box" style="display: none; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; font-weight: 600; text-align: center;"></div>
+                
+                <form id="insta-form">
+                    <label for="username">Instagram Username (Public Only)</label>
+                    <input type="text" id="username" placeholder="e.g., instagram, codewithharry" required style="width:100%; padding:10px; margin-bottom:1.5rem; border:1px solid #ddd; border-radius:6px;">
+                    <button type="submit" id="submit-btn" class="btn btn-primary" style="width: 100%; padding: 10px; cursor: pointer;">Fetch & Analyze</button>
+                </form>
+
+                <div id="loader" style="display: none; text-align: center; margin-top: 2rem;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2.5rem; color: var(--accent-color);"></i>
+                    <p style="margin-top: 1rem; font-weight: 600;">Fetching Instagram Profile Data...</p>
+                    <p style="color: #777; font-size: 0.85rem;">Note: If this is the first request, our free backend on Render may take up to 1 minute to spin up. Thank you for your patience!</p>
+                </div>
+            </div>
+
+            <div style="text-align: center; color: #666; font-size: 0.9rem; margin-top: 1rem;">
+                <p>Note: This tool uses public data. Rate limits may apply.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Widget -->
+    <div id="chat-widget" class="floating-chat-icon">
+        <div id="chat-button" class="chat-btn-circle">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+        </div>
+        <div id="chat-window" class="chat-window" style="display: none;">
+            <div class="chat-header">
+                <span>AI Assistant</span>
+                <span id="close-chat" style="cursor: pointer;">&times;</span>
+            </div>
+            <div id="chat-messages" class="chat-body">
+                <div class="chat-message bot-message">
+                    Hi! I can help analyze this profile. Ask me anything!
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Type a message..." class="chat-input-field">
+                <button id="send-btn" class="chat-send-btn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        document.getElementById('insta-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const alertBox = document.getElementById('alert-box');
+            const loader = document.getElementById('loader');
+            const submitBtn = document.getElementById('submit-btn');
+            const username = document.getElementById('username').value.trim();
+
+            alertBox.style.display = 'none';
+            loader.style.display = 'block';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/analyze/instagram`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    sessionStorage.setItem('instagram_analysis', JSON.stringify(data));
+                    window.location.href = 'instagram_result.html';
+                } else {
+                    loader.style.display = 'none';
+                    submitBtn.disabled = false;
+                    alertBox.style.background = '#fff5f5';
+                    alertBox.style.color = '#742a2a';
+                    alertBox.style.border = '1px solid #fed7d7';
+                    alertBox.innerText = data.error || "An error occurred fetching profile.";
+                    alertBox.style.display = 'block';
+                }
+            } catch (err) {
+                loader.style.display = 'none';
+                submitBtn.disabled = false;
+                alertBox.style.background = '#fff5f5';
+                alertBox.style.color = '#742a2a';
+                alertBox.style.border = '1px solid #fed7d7';
+                alertBox.innerText = "Error connecting to the analysis server. Please try again.";
+                alertBox.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

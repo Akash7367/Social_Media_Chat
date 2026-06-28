@@ -21,3 +21,5 @@ gunicorn
 SpeechRecognition
 pyttsx3
 chromadb
+flask-cors
+

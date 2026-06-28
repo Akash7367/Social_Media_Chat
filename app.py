@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, session, make_response, jsonify
+from flask_cors import CORS
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -13,12 +14,15 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import io
 import base64
+import uuid
 
 app = Flask(__name__)
+CORS(app) # Enable Cross-Origin Resource Sharing
 # Use a separate SECRET_KEY for production to persist sessions
 app.secret_key = os.environ.get("SECRET_KEY", "dev_secret_key_fallback")
 app.config['UPLOAD_FOLDER'] = 'uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
 
 # GEMINI CONFIG
 # API Key is loaded from .env automatically by load_dotenv()
@@ -64,15 +68,21 @@ def contact():
 
 @app.route('/analyze/instagram', methods=['POST'])
 def analyze_instagram():
-    username = request.form.get('username')
+    if request.is_json:
+        data = request.json or {}
+        username = data.get('username')
+    else:
+        username = request.form.get('username')
+        
+    if not username:
+        return jsonify({"error": "Username is required"}), 400
     
     # Unpack 4 values: profile_data, posts_df, stats, data_source
     # data_source: "live" | "cached" | "partial" | "demo"
     profile_data, posts_df, stats, data_source = instagram_scraper.fetch_profile_data(username)
     
     if not profile_data:
-        flash("Error fetching profile. It might be private or rate limited.", "error")
-        return redirect(url_for('instagram'))
+        return jsonify({"error": "Error fetching profile. It might be private or rate limited."}), 400
     
     activity_metrics = instagram_scraper.calculate_activity_metrics(posts_df)
     
@@ -120,13 +130,15 @@ def analyze_instagram():
         'most_commented': most_commented
     }
 
-    return render_template('instagram_result.html', 
-                           profile=profile_data, 
-                           stats=stats, 
-                           activity=activity_metrics,
-                           graphs=graphs,
-                           top_content=top_content,
-                           data_source=data_source)
+    return jsonify({
+        "profile": profile_data,
+        "stats": stats,
+        "activity": activity_metrics,
+        "graphs": graphs,
+        "top_content": top_content,
+        "data_source": data_source
+    })
+
 
 # WhatsApp Logic
 # For simplicity in this demo, we will process the file on every request or use a simple caching mechanism 
@@ -138,26 +150,34 @@ import re
 @app.route('/analyze/whatsapp', methods=['POST'])
 def analyze_whatsapp():
     if 'file' not in request.files:
-        flash('No file part', 'error')
-        return redirect(request.url)
+        return jsonify({"error": "No file part"}), 400
     file = request.files['file']
     if file.filename == '':
-        flash('No selected file', 'error')
-        return redirect(request.url)
+        return jsonify({"error": "No selected file"}), 400
     
     if file:
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file_id = str(uuid.uuid4())
+        filename = f"{file_id}.txt"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
-        session['filepath'] = filepath
         
         # VALIDATION: Check first few lines for WhatsApp pattern
-        with open(filepath, 'r', encoding='utf-8') as f:
-            # Read first few lines to validate
-            head = [next(f) for _ in range(5)]
-            
-            # Reset pointer for processing
-            f.seek(0)
-            data = f.read()
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                # Read first few lines to validate
+                head = []
+                for _ in range(5):
+                    try:
+                        line = next(f)
+                        head.append(line)
+                    except StopIteration:
+                        break
+                
+                # Reset pointer for processing
+                f.seek(0)
+                data = f.read()
+        except Exception as e:
+            return jsonify({"error": f"Failed to read file: {str(e)}"}), 400
 
         # Regex for standard WhatsApp date formats (dd/mm/yy or mm/dd/yy)
         # Matches: "12/05/2023, 10:30" or "[12/05/23, 10:30]"
@@ -171,11 +191,13 @@ def analyze_whatsapp():
         
         if not is_valid:
             # Invalid Format
-            flash('This is not a whatsapp chat. Please upload only whatsapp chat!', 'warning')
-            return redirect(url_for('whatsapp'))
+            try:
+                os.remove(filepath)
+            except:
+                pass
+            return jsonify({"error": "This is not a WhatsApp chat. Please upload only WhatsApp chat!"}), 400
 
         # Initial Processing to get user list
-            
         df = preprocessor.preprocess(data)
         user_list = df['user'].unique().tolist()
         if 'group_notification' in user_list:
@@ -183,13 +205,11 @@ def analyze_whatsapp():
         user_list.sort()
         user_list.insert(0, "Overall")
         
-        session['user_list'] = user_list
-        
         # Index into ChromaDB for semantic search (optional feature)
         if vector_store:
             try:
-                # Use filename as collection name (sanitized inside VectorStore)
-                vector_store.index_chat(df, file.filename)
+                # Use file_id as collection name
+                vector_store.index_chat(df, filename)
             except Exception as e:
                 print(f"❌ Indexing Error: {e}")
                 print("   Chat analysis will still work; semantic search will be unavailable.")
@@ -197,23 +217,40 @@ def analyze_whatsapp():
             print("⚠️ VectorStore not available; semantic search skipped.")
 
         # Default to Overall
-        return render_whatsapp_result("Overall", df, user_list)
+        res = render_whatsapp_result("Overall", df, user_list)
+        res["file_id"] = file_id
+        return jsonify(res)
 
 @app.route('/analyze/whatsapp_result', methods=['POST'])
 def whatsapp_result_update():
-    selected_user = request.form.get('user')
-    filepath = session.get('filepath')
-    
-    if not filepath or not os.path.exists(filepath):
-        flash("Session expired home. Please upload file again.", "error")
-        return redirect(url_for('whatsapp'))
+    if request.is_json:
+        data = request.json or {}
+        selected_user = data.get('user', 'Overall')
+        file_id = data.get('file_id')
+        search_query = data.get('search_query')
+    else:
+        selected_user = request.form.get('user', 'Overall')
+        file_id = request.form.get('file_id')
+        search_query = request.form.get('search_query')
+        
+    if not file_id:
+        return jsonify({"error": "file_id is required"}), 400
+        
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"{file_id}.txt")
+    if not os.path.exists(filepath):
+        return jsonify({"error": "Session expired or file not found. Please upload file again."}), 404
         
     with open(filepath, 'r', encoding='utf-8') as f:
         data = f.read()
     df = preprocessor.preprocess(data)
-    user_list = session.get('user_list', [])
     
-    search_query = request.form.get('search_query')
+    # Calculate user list on-the-fly
+    user_list = df['user'].unique().tolist()
+    if 'group_notification' in user_list:
+         user_list.remove('group_notification')
+    user_list.sort()
+    user_list.insert(0, "Overall")
+    
     search_results = []
     
     if search_query:
@@ -223,11 +260,13 @@ def whatsapp_result_update():
         for i, row in search_df.iterrows():
             search_results.append({
                 'user': row['user'],
-                'date': row['date'],
+                'date': str(row['date']),
                 'message': row['message']
             })
     
-    return render_whatsapp_result(selected_user, df, user_list, search_results)
+    res = render_whatsapp_result(selected_user, df, user_list, search_results)
+    res["file_id"] = file_id
+    return jsonify(res)
 
 import smtplib
 from email.mime.text import MIMEText
@@ -235,9 +274,18 @@ from email.mime.multipart import MIMEMultipart
 
 @app.route('/send_message', methods=['POST'])
 def send_message_route():
-    name = request.form.get('name')
-    email = request.form.get('email')
-    message = request.form.get('message')
+    if request.is_json:
+        data = request.json or {}
+        name = data.get('name')
+        email = data.get('email')
+        message = data.get('message')
+    else:
+        name = request.form.get('name')
+        email = request.form.get('email')
+        message = request.form.get('message')
+        
+    if not name or not email or not message:
+        return jsonify({"error": "All fields are required"}), 400
     
     # 1. FILE LOGGING (Guaranteed Backup)
     log_entry = f"--- New Message ---\nName: {name}\nEmail: {email}\nMessage: {message}\n-------------------\n"
@@ -250,8 +298,7 @@ def send_message_route():
     
     if not mail_user or "your_email" in mail_user or not mail_pass:
         print("DEBUG: Email credentials not set. Message logged to file only.")
-        flash("Message received! (Logged to system, Email config pending)", "success")
-        return redirect(url_for('contact'))
+        return jsonify({"success": True, "message": "Message received! (Logged to system, Email config pending)"})
 
     try:
         # construct email
@@ -271,29 +318,36 @@ def send_message_route():
         server.sendmail(mail_user, mail_user, text)
         server.quit()
         
-        flash("Message sent successfully!", "success")
+        return jsonify({"success": True, "message": "Message sent successfully!"})
         
     except Exception as e:
         print(f"Error sending email: {e}")
-        flash(f"Error sending email: {str(e)} (Logged to file)", "error")
-        
-    return redirect(url_for('contact'))
+        return jsonify({"success": True, "message": f"Error sending email: {str(e)} (Logged to file)"})
 
 @app.route('/download_report')
 def download_report():
-    filepath = session.get('filepath')
-    selected_user = session.get('selected_user', 'Overall')
+    file_id = request.args.get('file_id')
+    selected_user = request.args.get('selected_user', 'Overall')
     
-    if not filepath or not os.path.exists(filepath):
-        flash("Session expired. Please upload file again.", "error")
-        return redirect(url_for('whatsapp'))
+    if not file_id:
+        return "file_id is required", 400
+        
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"{file_id}.txt")
+    if not os.path.exists(filepath):
+        return "Session expired or file not found. Please upload file again.", 404
         
     with open(filepath, 'r', encoding='utf-8') as f:
         data = f.read()
     
     # Re-process data
     df = preprocessor.preprocess(data)
-    user_list = session.get('user_list', [])
+    
+    # Calculate user list on-the-fly
+    user_list = df['user'].unique().tolist()
+    if 'group_notification' in user_list:
+         user_list.remove('group_notification')
+    user_list.sort()
+    user_list.insert(0, "Overall")
     
     # Read CSS file to embed
     css_path = os.path.join(app.root_path, 'static', 'css', 'style.css')
@@ -324,6 +378,7 @@ def download_report():
     response.headers["Content-Disposition"] = f"attachment; filename={safe_filename}"
     response.headers["Content-type"] = "text/html"
     return response
+
 
 def render_whatsapp_result(selected_user, df, user_list, search_results=None, download_mode=False, css_content="", parent_template="base.html"):
     print(f"DEBUG: render_whatsapp_result called with download_mode={download_mode}")
@@ -398,16 +453,26 @@ def render_whatsapp_result(selected_user, df, user_list, search_results=None, do
     # Toxicity Analysis
     toxicity_data = helper.analyze_toxicity(selected_user, df)
 
-    return render_template('whatsapp_result.html', 
-                           selected_user=selected_user, 
-                           users=user_list,
-                           stats=stats,
-                           charts=charts,
-                           search_results=search_results,
-                           toxicity=toxicity_data,
-                           download_mode=download_mode,
-                           css_content=css_content,
-                           parent_template=parent_template)
+    if download_mode:
+        return render_template('whatsapp_result.html', 
+                               selected_user=selected_user, 
+                               users=user_list,
+                               stats=stats,
+                               charts=charts,
+                               search_results=search_results,
+                               toxicity=toxicity_data,
+                               download_mode=download_mode,
+                               css_content=css_content,
+                               parent_template=parent_template)
+    else:
+        return {
+            "selected_user": selected_user,
+            "users": user_list,
+            "stats": stats,
+            "charts": charts,
+            "search_results": search_results or [],
+            "toxicity": toxicity_data
+        }
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
@@ -415,10 +480,14 @@ def chat():
     user_message = data.get('message')
     frontend_context = data.get('context', "")
     selected_user = (data.get('selected_user') or "Overall").strip() or "Overall"
+    file_id = data.get('file_id')
 
     backend_context = ""
 
-    filepath = session.get('filepath')
+    filepath = None
+    if file_id:
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"{file_id}.txt")
+
     if filepath and os.path.exists(filepath):
         try:
             filename = os.path.basename(filepath)
@@ -482,4 +551,5 @@ def chat():
     return {"response": response}
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5050)
+

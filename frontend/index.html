@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SocialAnalyser - Premium Chat & Social Media Analytics</title>
+    <meta name="description" content="Deploy modern, fast, and gorgeous analysis for your WhatsApp and Instagram exports instantly.">
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="navbar-brand">📊 SocialAnalyser</a>
+        <button id="hamburger-btn" class="hamburger-menu" aria-label="Toggle menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="nav-links" id="nav-links">
+            <a href="index.html" class="btn nav-btn">Home</a>
+            <a href="contact.html" class="btn nav-btn">Contact</a>
+            <button id="theme-toggle" class="btn nav-btn" style="background:none; font-size: 1.2rem; cursor: pointer;">🌓</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="hero">
+            <h1>Social Media Analysis Tool</h1>
+            <p>Select a platform to start analyzing</p>
+
+            <div class="grid-cols-2" style="max-width: 800px; margin: 0 auto; gap: 2rem; display: grid;">
+                <a href="whatsapp.html" class="whatsapp-card" style="text-decoration: none; color: inherit; display: block;">
+                    <i class="fab fa-whatsapp card-icon" style="color: #25D366; font-size: 3.5rem; margin-bottom: 1rem;"></i>
+                    <h2>WhatsApp</h2>
+                    <p style="margin-bottom: 2rem;">Upload chat export (.txt) to analyze messages, timeline, and activity.</p>
+                    <span class="btn" style="background: #25D366; color: white;">Analyze WhatsApp</span>
+                </a>
+
+                <a href="instagram.html" class="instagram-card" style="text-decoration: none; color: inherit; display: block;">
+                    <i class="fab fa-instagram card-icon" style="background: linear-gradient(45deg, #f09433 0%, #dc2743 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 3.5rem; margin-bottom: 1rem;"></i>
+                    <h2>Instagram</h2>
+                    <p style="margin-bottom: 2rem;">Enter a public username to analyze profile stats and engagement.</p>
+                    <span class="btn" style="background:linear-gradient(45deg, #f09433 0%, #dc2743 100%); color: white;">Analyze Instagram</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Widget -->
+    <div id="chat-widget" class="floating-chat-icon">
+        <div id="chat-button" class="chat-btn-circle">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+        </div>
+        <div id="chat-window" class="chat-window" style="display: none;">
+            <div class="chat-header">
+                <span>AI Assistant</span>
+                <span id="close-chat" style="cursor: pointer;">&times;</span>
+            </div>
+            <div id="chat-messages" class="chat-body">
+                <div class="chat-message bot-message">
+                    Hi! I can help analyze this profile. Ask me anything!
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Type a message..." class="chat-input-field">
+                <button id="send-btn" class="chat-send-btn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

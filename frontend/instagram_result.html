@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Analysis Result - SocialAnalyser</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Force dark-mode overrides */
+        body.dark-mode {
+            background-color: #1a202c !important;
+            background-image: none !important;
+            color: #cbd5e0 !important;
+        }
+        body.dark-mode .navbar {
+            background: #2d3748 !important;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2) !important;
+        }
+        body.dark-mode .card,
+        body.dark-mode .instagram-card,
+        body.dark-mode .ps-white-card,
+        body.dark-mode .post-card {
+            background: #2d3748 !important;
+            color: #edf2f7 !important;
+            border-color: #4a5568 !important;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2) !important;
+        }
+        body.dark-mode h1, 
+        body.dark-mode h2, 
+        body.dark-mode h3, 
+        body.dark-mode h4,
+        body.dark-mode h5,
+        body.dark-mode p,
+        body.dark-mode label {
+            color: #edf2f7 !important;
+        }
+        body.dark-mode .ps-label {
+            color: #cbd5e0 !important;
+        }
+        body.dark-mode .ps-value {
+            color: #ffffff !important;
+        }
+        body.dark-mode #profile-bio,
+        body.dark-mode #profile-fullname {
+            color: #cbd5e0 !important;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="navbar-brand">📊 SocialAnalyser</a>
+        <button id="hamburger-btn" class="hamburger-menu" aria-label="Toggle menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="nav-links" id="nav-links">
+            <a href="index.html" class="btn nav-btn">Home</a>
+            <a href="contact.html" class="btn nav-btn">Contact</a>
+            <button id="theme-toggle" class="btn nav-btn" style="background:none; font-size: 1.2rem; cursor: pointer;">🌓</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Banners -->
+        <div id="demo-banner" style="display:none; background-color: #fff3cd; color: #856404; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid #ffeeba; align-items: center; gap: 1rem;">
+            <span style="font-size: 1.5rem;">⚠️</span>
+            <div>
+                <strong>Demo Mode Active</strong><br>
+                Instagram blocked the request (Rate Limit / Login Wall). Showing <strong>Mock Data</strong>.<br>
+                <em>This is usually a temporary network restriction. Try again later or use a different network.</em>
+            </div>
+        </div>
+
+        <div id="partial-banner" style="display:none; background-color: #cce5ff; color: #004085; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid #b8daff; align-items: center; gap: 1rem;">
+            <span style="font-size: 1.5rem;">ℹ️</span>
+            <div>
+                <strong>Profile Data is Real</strong> — Post analytics below are estimated (sample data).<br>
+                <em>Instagram limits access to individual post data without login. Profile stats above are accurate.</em>
+            </div>
+        </div>
+
+        <div id="cached-banner" style="display:none; background-color: #d4edda; color: #155724; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid #c3e6cb; align-items: center; gap: 0.75rem;">
+            <span style="font-size: 1.2rem;">📦</span>
+            <div>
+                <strong>Cached Data</strong> — Loaded from recent cache. Post analytics are estimated.
+            </div>
+        </div>
+
+        <!-- Profile Header -->
+        <div class="profile-header" style="display: flex; align-items: center; gap: 2rem; margin-bottom: 2rem;">
+            <img id="profile-img" src="" alt="Profile Pic" class="profile-img" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 4px solid var(--accent-color);">
+            <div class="profile-info">
+                <h1 style="display: flex; align-items: center; gap: 10px;">
+                    <span id="profile-username">username</span>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e1306c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                    </svg>
+                </h1>
+                <p id="profile-fullname" style="color: #777; margin: 0; font-size: 1.2rem;"></p>
+                <p id="profile-bio" style="color: #555; margin-top: 0.5rem; max-width: 600px;"></p>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid-cols-3" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+            <div class="instagram-card">
+                <i class="fas fa-image card-icon"></i>
+                <div class="ps-label">Uploads</div>
+                <div class="ps-value" id="stat-uploads">0</div>
+                <span class="real-badge" style="font-size: 0.7rem; color: #28a745;">✓ Real</span>
+            </div>
+            <div class="instagram-card">
+                <i class="fas fa-users card-icon"></i>
+                <div class="ps-label">Followers</div>
+                <div class="ps-value" id="stat-followers">0</div>
+                <span class="real-badge" style="font-size: 0.7rem; color: #28a745;">✓ Real</span>
+            </div>
+            <div class="instagram-card">
+                <i class="fas fa-user-friends card-icon"></i>
+                <div class="ps-label">Following</div>
+                <div class="ps-value" id="stat-following">0</div>
+                <span class="real-badge" style="font-size: 0.7rem; color: #28a745;">✓ Real</span>
+            </div>
+            <div class="instagram-card">
+                <i class="fas fa-chart-line card-icon"></i>
+                <div class="ps-label">Engagement</div>
+                <div class="ps-value" id="stat-engagement">0%</div>
+                <span id="badge-engagement" style="font-size: 0.7rem;">✓ Real</span>
+            </div>
+            <div class="instagram-card">
+                <i class="fas fa-heart card-icon"></i>
+                <div class="ps-label">Avg Likes</div>
+                <div class="ps-value" id="stat-likes">0</div>
+                <span id="badge-likes" style="font-size: 0.7rem;">✓ Real</span>
+            </div>
+            <div class="instagram-card">
+                <i class="fas fa-bolt card-icon"></i>
+                <div class="ps-label">Avg Activity</div>
+                <div class="ps-value" id="stat-activity">0/wk</div>
+                <span id="badge-activity" style="font-size: 0.7rem;">✓ Real</span>
+            </div>
+        </div>
+
+        <!-- Activity Graphs -->
+        <div class="grid-cols-3" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <div class="ps-white-card graph-container" style="text-align: center; padding: 1.5rem; border-radius: 12px; background: white; box-shadow: var(--shadow-sm);">
+                <img id="chart-daily" src="" style="width: 100%; border-radius: 8px;">
+                <p style="font-weight: bold; font-size: 1.1rem; color: #3f3d56; margin-top: 1rem;"><span id="txt-posts-day">0</span> <span style="font-size: 0.9rem; color: #777; font-weight: normal;">Posts per day</span></p>
+            </div>
+            <div class="ps-white-card graph-container" style="text-align: center; padding: 1.5rem; border-radius: 12px; background: white; box-shadow: var(--shadow-sm);">
+                <img id="chart-weekly" src="" style="width: 100%; border-radius: 8px;">
+                <p style="font-weight: bold; font-size: 1.1rem; color: #3f3d56; margin-top: 1rem;"><span id="txt-posts-week">0</span> <span style="font-size: 0.9rem; color: #777; font-weight: normal;">Posts per week</span></p>
+            </div>
+            <div class="ps-white-card graph-container" style="text-align: center; padding: 1.5rem; border-radius: 12px; background: white; box-shadow: var(--shadow-sm);">
+                <img id="chart-monthly" src="" style="width: 100%; border-radius: 8px;">
+                <p style="font-weight: bold; font-size: 1.1rem; color: #3f3d56; margin-top: 1rem;"><span id="txt-posts-month">0</span> <span style="font-size: 0.9rem; color: #777; font-weight: normal;">Posts per month</span></p>
+            </div>
+        </div>
+
+        <!-- Top Content -->
+        <h2 style="color: #3f3d56; margin-top: 3rem; margin-bottom: 1.5rem;">Top Content</h2>
+        <div class="grid-cols-2" id="top-content-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+            <!-- Rendered Dynamically -->
+        </div>
+
+        <div style="text-align: center; margin-top: 3rem; margin-bottom: 3rem;">
+            <a href="instagram.html" class="btn btn-secondary" style="padding: 10px 20px; text-decoration: none; border: 1px solid #ddd; border-radius: 6px; color: var(--heading-color);">Search Another Profile</a>
+        </div>
+    </div>
+
+    <!-- Chat Widget -->
+    <div id="chat-widget" class="floating-chat-icon">
+        <div id="chat-button" class="chat-btn-circle">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+        </div>
+        <div id="chat-window" class="chat-window" style="display: none;">
+            <div class="chat-header">
+                <span>AI Assistant</span>
+                <span id="close-chat" style="cursor: pointer;">&times;</span>
+            </div>
+            <div id="chat-messages" class="chat-body">
+                <div class="chat-message bot-message">
+                    Hi! I can help analyze this profile. Ask me anything!
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Type a message..." class="chat-input-field">
+                <button id="send-btn" class="chat-send-btn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const rawData = sessionStorage.getItem('instagram_analysis');
+            if (!rawData) {
+                window.location.href = 'instagram.html';
+                return;
+            }
+
+            const data = JSON.parse(rawData);
+            const { profile, stats, activity, graphs, top_content, data_source } = data;
+
+            // Handle banners
+            if (data_source === 'demo') {
+                document.getElementById('demo-banner').style.display = 'flex';
+            } else if (data_source === 'partial') {
+                document.getElementById('partial-banner').style.display = 'flex';
+            } else if (data_source === 'cached') {
+                document.getElementById('cached-banner').style.display = 'flex';
+            }
+
+            // Profile info
+            document.getElementById('profile-img').src = profile.profile_pic_url || 'https://via.placeholder.com/150';
+            document.getElementById('profile-username').innerText = profile.username;
+            document.getElementById('profile-fullname').innerText = profile.full_name || '';
+            document.getElementById('profile-bio').innerText = profile.biography ? profile.biography.slice(0, 150) + (profile.biography.length > 150 ? '...' : '') : '';
+
+            // Stats grid
+            document.getElementById('stat-uploads').innerText = Number(profile.uploads).toLocaleString();
+            document.getElementById('stat-followers').innerText = Number(profile.followers).toLocaleString();
+            document.getElementById('stat-following').innerText = Number(profile.following).toLocaleString();
+            document.getElementById('stat-engagement').innerText = parseFloat(stats.engagement_rate).toFixed(2) + '%';
+            document.getElementById('stat-likes').innerText = Math.round(stats.average_likes).toLocaleString();
+            document.getElementById('stat-activity').innerText = parseFloat(activity.posts_per_week).toFixed(2) + '/wk';
+
+            // Real badges
+            const badgeClasses = ['badge-engagement', 'badge-likes', 'badge-activity'];
+            badgeClasses.forEach(id => {
+                const el = document.getElementById(id);
+                if (data_source !== 'live') {
+                    el.innerText = '~ Estimated';
+                    el.style.color = '#fd7e14';
+                } else {
+                    el.innerText = '✓ Real';
+                    el.style.color = '#28a745';
+                }
+            });
+
+            // Graphs
+            if (graphs.daily_chart) {
+                document.getElementById('chart-daily').src = 'data:image/png;base64,' + graphs.daily_chart;
+                document.getElementById('txt-posts-day').innerText = parseFloat(activity.posts_per_day).toFixed(2);
+            }
+            if (graphs.weekly_chart) {
+                document.getElementById('chart-weekly').src = 'data:image/png;base64,' + graphs.weekly_chart;
+                document.getElementById('txt-posts-week').innerText = parseFloat(activity.posts_per_week).toFixed(2);
+            }
+            if (graphs.monthly_chart) {
+                document.getElementById('chart-monthly').src = 'data:image/png;base64,' + graphs.monthly_chart;
+                document.getElementById('txt-posts-month').innerText = parseFloat(activity.posts_per_month).toFixed(2);
+            }
+
+            // Top Content
+            const topContentContainer = document.getElementById('top-content-container');
+            topContentContainer.innerHTML = '';
+
+            const renderPost = (post, label) => {
+                if (!post) return '';
+                const mediaTag = post.is_video 
+                    ? `<video controls src="${post.url}" style="width:100%; border-radius:8px 8px 0 0; display:block;"></video>`
+                    : `<img src="${post.url}" style="width:100%; border-radius:8px 8px 0 0; display:block; object-fit:cover; max-height:400px;" alt="${label}">`;
+
+                return `
+                    <div class="post-card" style="background:white; border-radius:12px; box-shadow:var(--shadow-sm); overflow:hidden;">
+                        ${mediaTag}
+                        <div class="post-details" style="padding:1.5rem;">
+                            <h3 style="color: var(--accent-color); margin-top:0; margin-bottom:0.5rem;">${label}</h3>
+                            <p style="margin: 0.5rem 0;"><strong>${post.likes.toLocaleString()}</strong> Likes &bull; <strong>${post.comments.toLocaleString()}</strong> Comments</p>
+                            <p style="font-size: 0.9rem; color: #666; margin-bottom:0;">${post.caption ? post.caption.slice(0, 100) + '...' : ''}</p>
+                        </div>
+                    </div>
+                `;
+            };
+
+            if (top_content.most_liked) {
+                topContentContainer.innerHTML += renderPost(top_content.most_liked, 'Most Liked ❤️');
+            }
+            if (top_content.most_commented) {
+                topContentContainer.innerHTML += renderPost(top_content.most_commented, 'Most Commented 💬');
+            }
+        });
+    </script>
+</body>
+</html>
