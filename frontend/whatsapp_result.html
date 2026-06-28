@@ -188,6 +188,36 @@
             cursor: pointer;
             color: #aaa;
         }
+        /* Search Result Cards */
+        .search-result-card {
+            background: white;
+            border: 1px solid #edf2f7;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 10px;
+        }
+        .search-result-user {
+            color: #718096;
+            font-size: 0.85rem;
+        }
+        /* Dark Mode: Search Modal & Results */
+        body.dark-mode .qr-modal-content,
+        body.dark-mode #searchModal .qr-modal-content {
+            background: #2d3748 !important;
+            color: #edf2f7 !important;
+        }
+        body.dark-mode .search-result-card {
+            background: #1a202c !important;
+            border-color: #4a5568 !important;
+            color: #e2e8f0 !important;
+        }
+        body.dark-mode .search-result-user {
+            color: #a0aec0 !important;
+        }
+        body.dark-mode .search-result-card strong {
+            color: #edf2f7 !important;
+        }
     </style>
 </head>
 <body>
@@ -557,8 +587,8 @@
                 if (response.ok && data.search_results && data.search_results.length) {
                     data.search_results.forEach(res => {
                         resultsContainer.innerHTML += `
-                            <div style="background: white; border: 1px solid #edf2f7; padding: 1rem; border-radius: 8px; box-shadow: var(--shadow-sm); margin-bottom: 10px;">
-                                <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem; font-size:0.85rem; color:#718096;">
+                            <div class="search-result-card">
+                                <div class="search-result-user" style="display:flex; justify-content:space-between; margin-bottom: 0.5rem;">
                                     <strong>${escapeHTML(res.user)}</strong>
                                     <span>${res.date}</span>
                                 </div>
